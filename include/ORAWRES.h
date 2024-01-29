@@ -36,7 +36,8 @@
 
 #define MAX_RAW			 		    3
 #define MAX_PRODUCT					 3
-#define MAX_RAW_RESERVE_QTY	20000
+//DieselMachine
+#define MAX_RAW_RESERVE_QTY	40000
 
 //------------ define icon size -------------//
 

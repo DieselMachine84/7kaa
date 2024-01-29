@@ -237,11 +237,23 @@ int Nation::capture_expected_resistance(int townRecno, int *captureUnitRecno)
 	//---- see if there are general available for capturing this town ---//
 
 	int majorityRace = townPtr->majority_race();
-	int targetResistance;
 
-	*captureUnitRecno = find_best_capturer(townRecno, majorityRace, /*out*/ targetResistance);
-	if( !(*captureUnitRecno) )
+	//DieselMachine
+	int targetResistance = 100;
+	int bestCapturer = find_best_capturer(townRecno, majorityRace, /*out*/ targetResistance);
+	if (bestCapturer == 0)
+	{
+		bestCapturer = hire_best_capturer(townRecno, majorityRace);
+	}
+	if (bestCapturer != 0)
+	{
+		*captureUnitRecno = bestCapturer;
+		targetResistance = 0;
+	}
+	else
+	{
 		return 100;
+	}
 
 	int resultResistance =
 		( targetResistance * townPtr->race_pop_array[majorityRace-1] +
@@ -523,7 +535,8 @@ int Nation::hire_best_capturer(int townRecno, int raceId)
 	InnUnit *innUnit;
 	Skill		*innUnitSkill;
 	int		i, j, innUnitCount, curRating;
-	int		bestRating=0, bestInnRecno=0, bestInnUnitId=0;
+	//DieselMachine
+	int		bestRating=80, bestInnRecno=0, bestInnUnitId=0;
 	Town* 	townPtr = town_array[townRecno];
 	int		destRegionId = world.get_region_id(townPtr->loc_x1, townPtr->loc_y1);
 

@@ -257,6 +257,8 @@ void Nation::update_ai_region()
 
 		ai_region_array[regionRecno-1].town_count++;
 
+		//DieselMachine
+		townPtr->update_base_town_status();
 		if( townPtr->is_base_town )
 			ai_region_array[regionRecno-1].base_town_count++;
 	}

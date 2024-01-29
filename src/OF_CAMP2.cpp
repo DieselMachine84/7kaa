@@ -383,15 +383,23 @@ void FirmCamp::think_recruit()
 	{
 		combatDiff = 1000;
 	}
-	else if( nationPtr->total_jobless_population > 20 + (100-nationPtr->pref_military_development) / 3 )		// 20 to 53
+	//DieselMachine
+	/*else if( nationPtr->total_jobless_population > 20 + (100-nationPtr->pref_military_development) / 3 )		// 20 to 53
 	{
 		combatDiff = 1000;		// recruit as many as possible
-	}
+	}*/
 	else
 	{
-		int combatLevelNeeded = ai_combat_level_needed();
-
-		combatDiff = combatLevelNeeded - total_combat_level();
+		//DieselMachine
+		if( nationPtr->total_jobless_population > nationPtr->total_population * (30 + nationPtr->pref_inc_pop_by_growth / 5) / 100.0 )	// 30% to 50%
+		{
+			combatDiff = 1000;		// recruit as many as possible
+		}
+		else
+		{
+			int combatLevelNeeded = ai_combat_level_needed();
+			combatDiff = combatLevelNeeded - total_combat_level();
+		}
 	}
 
 	if( combatDiff > 0 )

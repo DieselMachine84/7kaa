@@ -837,6 +837,9 @@ int Unit::think_assign_weapon_to_camp()
 //
 int Unit::think_build_camp()
 {
+	//DieselMachine
+	return 0;
+
 	//---- select a town to build the camp ---//
 
 	Nation* ownNation = nation_array[nation_recno];

@@ -102,8 +102,20 @@ int FirmInn::think_hire_spy()
 {
 	Nation* ownNation = nation_array[nation_recno];
 
-	if( !ownNation->ai_should_spend(ownNation->pref_spy/2) )
+	//DieselMachine
+	if( ownNation->total_spy_count > ownNation->total_population * (10+ownNation->pref_spy/10) / 100 )		// 10% to 20%
 		return 0;
+
+	if( !ownNation->ai_should_spend(ownNation->pref_spy/2) )		// 0 to 50
+		return 0;
+
+	//--- the expense of spies should not be too large ---//
+
+	if( ownNation->expense_365days(EXPENSE_SPY) >
+		 ownNation->expense_365days() * (50+ownNation->pref_spy) / 400 )
+	{
+		return 0;
+	}
 
 	//--------------------------------------------//
 

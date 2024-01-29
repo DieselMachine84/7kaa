@@ -414,7 +414,8 @@ void Town::think_collect_tax()
 
 	int yearProfit = (int) nation_array[nation_recno]->profit_365days();
 
-	int minLoyalty = 55 + 30 * nation_array[nation_recno]->pref_loyalty_concern / 100;
+	//DieselMachine
+	int minLoyalty = 50 + 30 * nation_array[nation_recno]->pref_loyalty_concern / 100;
 
 	if( yearProfit < 0 )								// we are losing money now
 		minLoyalty -= (-yearProfit) / 100;		// more aggressive in collecting tax if we are losing a lot of money
@@ -423,10 +424,11 @@ void Town::think_collect_tax()
 
 	//---------------------------------------------//
 
-	int achievableLoyalty = average_target_loyalty()-10;		// -10 because it's an average, -10 will be safer
+	//DieselMachine
+	//int achievableLoyalty = average_target_loyalty()-10;		// -10 because it's an average, -10 will be safer
 
-	if( achievableLoyalty > minLoyalty )		// if the achievable loyalty is higher, then use it 
-		minLoyalty = achievableLoyalty;
+	//if( achievableLoyalty > minLoyalty )		// if the achievable loyalty is higher, then use it
+		//minLoyalty = achievableLoyalty;
 
 	if( average_loyalty() < minLoyalty )
 		return;
@@ -791,8 +793,46 @@ int Town::think_build_camp()
 
 	//---- only build camp if we have enough cash and profit ----//
 
-	if( !ownNation->ai_should_spend(70+ownNation->pref_military_development/4) ) 		// 70 to 95
-		return 0;
+	//DieselMachine
+	//if( !ownNation->ai_should_spend(70+ownNation->pref_military_development/4) ) 		// 70 to 95
+		//return 0;
+
+	//DieselMachine
+	double linkedCampsCount = 0.0;
+	for( int i=linked_firm_count-1 ; i>=0 ; i-- )
+	{
+		firmPtr = firm_array[ linked_firm_array[i] ];
+
+		if( firmPtr->nation_recno != nation_recno )
+			continue;
+
+		if( firmPtr->firm_id == FIRM_CAMP )
+		{
+			double linkedTownsCount = 0.0;
+			for( int j=0 ; j<firmPtr->linked_town_count ; j++ )
+			{
+				Town* townPtr = town_array[firmPtr->linked_town_array[j]];
+
+				if( townPtr->nation_recno != nation_recno )
+					continue;
+
+				linkedTownsCount += 1.0;
+			}
+
+			if (linkedTownsCount > 0.0)
+			{
+				linkedCampsCount += 1.0 / linkedTownsCount;
+			}
+		}
+	}
+
+	//We should build camp for every 20-30 people depending on pref_military_development and pref_inc_pop_by_growth
+	double prefBuildingCamps = (double)ownNation->pref_military_development + (100.0 - (double)ownNation->pref_inc_pop_by_growth);
+	double neededCampsCount = (double)population / (30.0 - prefBuildingCamps / 200.0 * 10.0);
+	if (neededCampsCount > linkedCampsCount && info.game_date > info.game_start_date + 180)
+	{
+		return ai_build_neighbor_firm(FIRM_CAMP);
+	}
 
 	//---- only build camp if we need more protection than it is currently available ----//
 
@@ -879,6 +919,11 @@ void Town::update_product_supply()
 
 int Town::think_build_research()
 {
+	//DieselMachine
+	//Do not build the first year
+	if (info.game_date < info.game_start_date + 365)
+		return 0;
+
 	Nation* nationPtr = nation_array[nation_recno];
 
 	if( !is_base_town )
@@ -1543,7 +1588,7 @@ int Town::think_counter_spy()
 
 	Nation* ownNation = nation_array[nation_recno];
 
-	if( ownNation->total_spy_count > ownNation->total_population * (10+ownNation->pref_spy/5) / 100 )		// 10% to 30%
+	if( ownNation->total_spy_count > ownNation->total_population * (5+ownNation->pref_spy/10) / 100 )		// 5% to 15%
 		return 0;
 
 	if( !ownNation->ai_should_spend(ownNation->pref_counter_spy/2) )		// 0 to 50
@@ -1607,7 +1652,8 @@ int Town::think_spying_town()
 	if( ownNation->total_population < 30-ownNation->pref_spy/10 )		// don't use spies if the population is too low, we need to use have people to grow population
 		return 0;
 
-	if( ownNation->total_spy_count > ownNation->total_population * (10+ownNation->pref_spy/5) / 100 )		// 10% to 30%
+	//DieselMachine
+	if( ownNation->total_spy_count > ownNation->total_population * (10+ownNation->pref_spy/10) / 100 )		// 10% to 20%
 		return 0;
 
 	if( !ownNation->ai_should_spend(ownNation->pref_spy/2) )		// 0 to 50
