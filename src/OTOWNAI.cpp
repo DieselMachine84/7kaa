@@ -414,7 +414,6 @@ void Town::think_collect_tax()
 
 	int yearProfit = (int) nation_array[nation_recno]->profit_365days();
 
-	//DieselMachine
 	int minLoyalty = 50 + 30 * nation_array[nation_recno]->pref_loyalty_concern / 100;
 
 	if( yearProfit < 0 )								// we are losing money now
@@ -423,12 +422,6 @@ void Town::think_collect_tax()
 	minLoyalty = MAX( 55, minLoyalty );
 
 	//---------------------------------------------//
-
-	//DieselMachine
-	//int achievableLoyalty = average_target_loyalty()-10;		// -10 because it's an average, -10 will be safer
-
-	//if( achievableLoyalty > minLoyalty )		// if the achievable loyalty is higher, then use it
-		//minLoyalty = achievableLoyalty;
 
 	if( average_loyalty() < minLoyalty )
 		return;
@@ -778,6 +771,11 @@ int Town::think_build_camp()
 		if( firmCamp->nation_recno != nation_recno )
 			continue;
 
+		if (firmCamp->worker_count == MAX_WORKER)
+		{
+			firmCamp->ai_recruiting_soldier = 0;
+		}
+
 		if( firmCamp->under_construction || firmCamp->ai_recruiting_soldier )  			// if this camp is still trying to recruit soldiers
 			return 0;
 
@@ -836,7 +834,9 @@ int Town::think_build_camp()
 
 	//---- only build camp if we need more protection than it is currently available ----//
 
-	int protectionNeeded 	= protection_needed();
+	//DieselMachine TODO evaluate protection better
+	return 0;
+	/*int protectionNeeded 	= protection_needed();
 	int protectionAvailable = protection_available();
 
 	if( protectionAvailable >= protectionNeeded )
@@ -875,7 +875,7 @@ int Town::think_build_camp()
 	if( !buildFlag )
 		return 0;
 
-	return ai_build_neighbor_firm(FIRM_CAMP);
+	return ai_build_neighbor_firm(FIRM_CAMP);*/
 }
 //---------- End of function Town::think_build_camp ------//
 
@@ -1588,7 +1588,8 @@ int Town::think_counter_spy()
 
 	Nation* ownNation = nation_array[nation_recno];
 
-	if( ownNation->total_spy_count > ownNation->total_population * (5+ownNation->pref_spy/10) / 100 )		// 5% to 15%
+	//DieselMachine
+	if( ownNation->total_spy_count > ownNation->total_population * (5+ownNation->pref_counter_spy/10) / 100 )		// 5% to 15%
 		return 0;
 
 	if( !ownNation->ai_should_spend(ownNation->pref_counter_spy/2) )		// 0 to 50

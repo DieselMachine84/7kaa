@@ -384,9 +384,9 @@ int SiteArray::create_raw_site(int regionId, int townRecno)
 	{
 		//DieselMachine
 		int maxRawReserve = MAX_RAW_RESERVE_QTY;
-		if (info.year_passed < 6)
+		if (info.year_passed < 5)
 		{
-			maxRawReserve = maxRawReserve / 4;
+			maxRawReserve = maxRawReserve / 2;
 		}
 		int reserveQty = maxRawReserve * (50 + misc.random(50)) / 100;
 

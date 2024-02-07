@@ -347,8 +347,11 @@ void Nation::process_on_going_action()
 
 	//----- if the nation is in the process of attacking a target ----//
 
-	if( attack_camp_count > 0 )
-		ai_attack_target_execute(1);
+	if (attack_camp_count > 0)
+	{
+		//DieselMachine TODO We should pass 1 if we are just moving to the point
+		ai_attack_target_execute(0, 0);
+	}
 }
 //---------- End of function Nation::process_on_going_action --------//
 

@@ -37,6 +37,8 @@
 #include <OTOWN.h>
 #endif
 
+#include <vector>
+
 //--------- define parameters ----------//
 
 #define  MAX_AI_REGION				20
@@ -154,6 +156,7 @@ struct ActionNode
 
 //------- Define struct AttackCamp --------//
 
+//DieselMachine TODO remove this limitation
 #define MAX_SUITABLE_ATTACK_CAMP    30    // total no. of useful camps
 
 #pragma pack(1)
@@ -438,8 +441,10 @@ public:
 
 	int 			ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLevel, int defenseMode=0, int justMoveToFlag=0, int attackerMinCombatLevel=0, int attackerCampRecno=0, int useAllCamp=0);
 	void 			ai_attack_target_sync();
-	void 			ai_attack_target_execute(int directAttack);
+	void 			ai_attack_target_execute(int defenseMode, int justMoveToFlag);
 	int 			ai_attack_order_nearby_mobile(int targetXLoc, int targetYLoc, int targetCombatLevel);
+	void			ai_collect_military_force(int targetXLoc, int targetYLoc, int targetRecno, std::vector<int>& camps, std::vector<int>& units, std::vector<int>& ourUnits);
+	int 			ai_evaluate_target_combat_level(int targetXLoc, int targetYLoc, int targetRecno);
 
 	int 			ai_sea_attack_target(int targetXLoc, int targetYLoc);
 
@@ -495,10 +500,11 @@ public:
 	void 			think_capturing_enemy_town();
 
 	int 			attack_enemy_town_defense(Town* targetTown, int useAllCamp=0);
-	Town* 		think_capture_enemy_town_target(Town* capturerTown);
-	int 			enemy_town_combat_level(Town* targetTown, int returnIfWar, int& hasWar);
+	Town* 			think_capture_enemy_town_target(Town* capturerTown);
 	int 			enemy_firm_combat_level(Firm* targetFirm, int returnIfWar, int& hasWar);
+	//DieselMachine TODO remove it
 	int 			mobile_defense_combat_level(int targetXLoc, int targetYLoc, int targetNationRecno, int returnIfWar, int& hasWar);
+	int 			is_battle(int targetXLoc, int targetYLoc);
 
 	int 			should_use_cash_to_capture();
 

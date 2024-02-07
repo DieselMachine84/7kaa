@@ -22,6 +22,8 @@
 //Description: AI - attacking
 
 #include <stdlib.h>
+#include <algorithm>
+#include <vector>
 #include <ALL.h>
 #include <OUNIT.h>
 #include <OCONFIG.h>
@@ -66,18 +68,6 @@ static int sort_attack_camp_function( const void *a, const void *b );
 //
 int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLevel, int defenseMode, int justMoveToFlag, int attackerMinCombatLevel, int leadAttackCampRecno, int useAllCamp)
 {
-/*					// this will be called when the AI tries to capture the town and attack the town's defense.
-#ifdef DEBUG	//----- check for attacking own objects error ------//
-	{
-		int targetNationRecno = get_target_nation_recno(targetXLoc, targetYLoc);
-
-		if( targetNationRecno )
-		{
-			err_when( get_relation(targetNationRecno)->status >= NATION_FRIENDLY );
-		}
-	}
-#endif
-*/
 	//--- order nearby mobile units who are on their way to home camps to join this attack mission. ---//
 
 	if( defenseMode )
@@ -85,18 +75,21 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 
 	if( defenseMode )		// only for defense mode, for attack mission, we should plan and organize it better
 	{
+		//DieselMachine TODO check this code
 		int originalTargetCombatLevel = targetCombatLevel;
 
 		targetCombatLevel = ai_attack_order_nearby_mobile(targetXLoc, targetYLoc, targetCombatLevel);
 
 		if( targetCombatLevel < 0 )		// the mobile force alone can finish all the enemies
+		{
 			return originalTargetCombatLevel - targetCombatLevel;
+		}
 	}
 
 	//--- try to send troop with maxTargetCombatLevel, and don't send troop if available combat level < minTargetCombatLevel ---//
 
 	int maxTargetCombatLevel = targetCombatLevel * (150+pref_force_projection/2) / 100;		// 150% to 200%
-	int minTargetCombatLevel;
+	int minTargetCombatLevel = 0;
 
 	if( defenseMode )
 		minTargetCombatLevel = targetCombatLevel * (100-pref_military_courage/2) / 100;		// 50% to 100%
@@ -104,29 +97,21 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 		minTargetCombatLevel = targetCombatLevel * (125+pref_force_projection/4) / 100;		// 125% to 150%
 
 	//--- if the AI is already on an attack mission ---//
-
-	if( attack_camp_count )
+	if (attack_camp_count > 0)
 		return 0;
 
 	//---- first locate for camps that do not need to protect any towns ---//
 
-	#define MAX_SUITABLE_TOWN_CAMP      10    // no. of camps in a town
-
 	FirmCamp* firmCamp;
-	int   i, j;
-	int   targetRegionId = world.get_loc(targetXLoc, targetYLoc)->region_id;
+	int targetRegionId = world.get_loc(targetXLoc, targetYLoc)->region_id;
 
 	err_when( targetXLoc < 0 || targetXLoc >= MAX_WORLD_X_LOC );
 	err_when( targetYLoc < 0 || targetYLoc >= MAX_WORLD_Y_LOC );
 
+	//DieselMachine TODO if we are attacking camp and it is sold or destroyed, think about attacking another camp
 	ai_attack_target_x_loc = targetXLoc;
 	ai_attack_target_y_loc = targetYLoc;
 	ai_attack_target_nation_recno = get_target_nation_recno(targetXLoc, targetYLoc);
-
-	attack_camp_count=0;
-
-	AttackCamp townCampArray[MAX_SUITABLE_TOWN_CAMP];
-	short townCampCount;
 
 	//------- if there is a pre-selected camp -------//
 
@@ -137,11 +122,11 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 		err_when( firm_array[leadAttackCampRecno]->nation_recno != nation_recno );
 		err_when( firm_array[leadAttackCampRecno]->firm_id != FIRM_CAMP );
 
-		attack_camp_array[attack_camp_count].firm_recno   = leadAttackCampRecno;
-		attack_camp_array[attack_camp_count].combat_level = ((FirmCamp*)firm_array[leadAttackCampRecno])->total_combat_level();
+		int combatLevel = ((FirmCamp*)firm_array[leadAttackCampRecno])->total_combat_level();
+		err_when( combatLevel < 0 );
 
-		err_when( attack_camp_array[attack_camp_count].combat_level < 0 );
-
+		attack_camp_array[attack_camp_count].firm_recno = leadAttackCampRecno;
+		attack_camp_array[attack_camp_count].combat_level = combatLevel;
 		attack_camp_count++;
 	}
 
@@ -200,15 +185,16 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 
 	//--------- locate for camps that are not linked to towns ---------//
 
-	int rc;
-
-	for( i=0 ; i<ai_camp_count ; i++ )
+	for (int i = 0; i < ai_camp_count; i++)
 	{
 		firmCamp = (FirmCamp*) firm_array[ ai_camp_array[i] ];
 
 		err_when( firmCamp->firm_id != FIRM_CAMP );
 
 		if( firmCamp->region_id != targetRegionId )
+			continue;
+
+		if (!useAllCamp && firmCamp->linked_town_count > 0)      // the base is linked to a town
 			continue;
 
 		if( !firmCamp->overseer_recno || !firmCamp->worker_count )
@@ -255,51 +241,26 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 		//
 		//-------------------------------------//
 
-		if( useAllCamp )
-			rc = 1;
-		else
-		{
-			rc = firmCamp->linked_town_count==0;		// don't use this camp as it may be in the process of capturing an indepdendent town or an enemy town
-/*
-			for( int j=firmCamp->linked_town_count-1 ; j>=0 ; j-- )
-			{
-				if( town_array[firmCamp->linked_town_array[j]]->nation_recno == nation_recno )
-					break;
-			}
+		//--- add this camp into the list of suitable attacker firm ---//
 
-			rc = j<0;		// j<0 means not linked to any of our towns.
-*/
-		}
+		err_when( firmCamp->nation_recno != nation_recno );
+		int combatLevel = firmCamp->total_combat_level();
+		err_when( combatLevel < 0 );
 
-		if( rc )
-		{
-			//--- if this camp into the list of suitable attacker firm ---//
-
-			if( attack_camp_count < MAX_SUITABLE_ATTACK_CAMP )
-			{
-				err_when( firmCamp->nation_recno != nation_recno );
-
-				attack_camp_array[attack_camp_count].firm_recno   = firmCamp->firm_recno;
-				attack_camp_array[attack_camp_count].combat_level = firmCamp->total_combat_level();
-
-				err_when( attack_camp_array[attack_camp_count].combat_level < 0 );
-
-				attack_camp_count++;
-			}
-		}
+		attack_camp_array[attack_camp_count].firm_recno = firmCamp->firm_recno;
+		attack_camp_array[attack_camp_count].combat_level = combatLevel;
+		attack_camp_count++;
 	}
 
 	//---- locate for camps that are extra for protecting towns (there are basic ones doing the protection job only) ----//
 
-	int   totalCombatLevel, protectionNeeded;
-	Town* townPtr;
-	Firm* firmPtr;
+	std::vector<short> townCampList;
 
 	if( !useAllCamp )         // in defense mode, every camp has been already counted
 	{
-		for( i=0 ; i<ai_town_count ; i++ )
+		for(int i = 0; i < ai_town_count; i++)
 		{
-			townPtr = town_array[ ai_town_array[i] ];
+			Town* townPtr = town_array[ ai_town_array[i] ];
 
 			if( townPtr->region_id != targetRegionId )
 				continue;
@@ -308,14 +269,24 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 
 			//----- calculate the protection needed for this town ----//
 
-			protectionNeeded = townPtr->protection_needed();
+			int totalCombatLevel = 0;
+			int protectionNeeded = townPtr->protection_needed();
 
-			townCampCount =0;
-			totalCombatLevel=0;
-
-			for( j=townPtr->linked_firm_count-1 ; j>=0 ; j-- )
+			for(int j = townPtr->linked_firm_count - 1; j >= 0; j--)
 			{
-				firmPtr = firm_array[ townPtr->linked_firm_array[j] ];
+				bool campIsAlreadyAdded = false;
+				for (int k = 0; k < attack_camp_count; k++)
+				{
+					if (attack_camp_array[k].firm_recno == townPtr->linked_firm_array[j])
+					{
+						campIsAlreadyAdded = true;
+						break;
+					}
+				}
+				if (campIsAlreadyAdded)
+					continue;
+
+				Firm* firmPtr = firm_array[ townPtr->linked_firm_array[j] ];
 
 				if( firmPtr->nation_recno != nation_recno )
 					continue;
@@ -327,7 +298,7 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 
 				if( firmPtr->firm_id == FIRM_CAMP )
 				{
-					if( !firmPtr->overseer_recno && !firmPtr->worker_count )
+					if( !firmPtr->overseer_recno || !firmPtr->worker_count )
 						continue;
 
 					firmCamp = (FirmCamp*) firmPtr;
@@ -344,19 +315,12 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 					if( leadAttackCampRecno && firmCamp->firm_recno == leadAttackCampRecno )
 						continue; // don't double count
 
-					totalCombatLevel += firmCamp->total_combat_level();
+					int combatLevel = firmCamp->total_combat_level();
+					err_when( firmCamp->nation_recno != nation_recno );
+					err_when( combatLevel < 0 );
+					totalCombatLevel += combatLevel;
 
-					if( townCampCount < MAX_SUITABLE_TOWN_CAMP )
-					{
-						err_when( firmCamp->nation_recno != nation_recno );
-
-						townCampArray[townCampCount].firm_recno   = firmCamp->firm_recno;
-						townCampArray[townCampCount].combat_level = firmCamp->total_combat_level();
-
-						err_when( townCampArray[townCampCount].combat_level < 0 );
-
-						townCampCount++;
-					}
+					townCampList.push_back(firmCamp->firm_recno);
 				}
 
 				//--- if this is a civilian firm, add needed protection points ---//
@@ -376,9 +340,12 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 			{
 				//--- see if the protection is still enough if we put one of the camps into the upcoming battle ---//
 
-				for( int j=0 ; j<townCampCount ; j++ )
+				for (int j = 0; j < townCampList.size(); j++)
 				{
-					if( totalCombatLevel - townCampArray[j].combat_level > protectionNeeded )
+					short firm_recno = townCampList[j];
+					FirmCamp* townCamp = (FirmCamp*)firm_array[firm_recno];
+					int combatLevel = townCamp->total_combat_level();
+					if( totalCombatLevel - combatLevel > protectionNeeded )
 					{
 						//--- if so, add this camp to the suitable camp list ---//
 
@@ -386,10 +353,10 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 						{
 							//--- this camp can be linked to a town previously processed already (in this case, two towns linked to the same camp) ---//
 
-							int k;
-							for( k=0 ; k<attack_camp_count ; k++ )
+							int k = 0;
+							for (k = 0; k < attack_camp_count; k++)
 							{
-								if( attack_camp_array[k].firm_recno == townCampArray[j].firm_recno )
+								if( attack_camp_array[k].firm_recno == firm_recno )
 									break;
 							}
 
@@ -397,12 +364,13 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 
 							if( k==attack_camp_count )
 							{
-								err_when( firm_array[townCampArray[j].firm_recno]->nation_recno != nation_recno );
+								err_when( firm_array[firm_recno]->nation_recno != nation_recno );
 
-								attack_camp_array[attack_camp_count] = townCampArray[j];
+								attack_camp_array[attack_camp_count].firm_recno = firm_recno;
+								attack_camp_array[attack_camp_count].combat_level = combatLevel;
 								attack_camp_count++;
 
-								totalCombatLevel -= townCampArray[j].combat_level;    // reduce it from the total combat level as its combat level has just been used, and is no longer available
+								totalCombatLevel -= combatLevel;    // reduce it from the total combat level as its combat level has just been used, and is no longer available
 							}
 						}
 					}
@@ -417,29 +385,28 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 
 	//--- first calculate the total combat level of these camps ---//
 
-	totalCombatLevel = 0;
+	int totalCombatLevel = 0;
 
-	for( i=0 ; i<attack_camp_count ; i++ )
+	for (int i = 0; i < attack_camp_count; i++)
 		totalCombatLevel += attack_camp_array[i].combat_level;
 
 	//--- see if we are not strong enough to attack yet -----//
 
 	if( totalCombatLevel < minTargetCombatLevel )		// if we are not strong enough to attack yet
 	{
-		attack_camp_count=0;
+		attack_camp_count = 0;
 		return 0;
 	}
 
 	//----- build an array of the distance data first -----//
 
-	for( i=0 ; i<attack_camp_count ; i++ )
+	for (int i = 0; i < attack_camp_count; i++)
 	{
-		firmPtr = firm_array[ attack_camp_array[i].firm_recno ];
+		Firm* firmPtr = firm_array[ attack_camp_array[i].firm_recno ];
 
 		err_when( firmPtr->nation_recno != nation_recno );
 
-		attack_camp_array[i].distance = misc.points_distance( firmPtr->center_x, firmPtr->center_y,
-												targetXLoc, targetYLoc );
+		attack_camp_array[i].distance = misc.points_distance( firmPtr->center_x, firmPtr->center_y, targetXLoc, targetYLoc );
 
 		err_when( attack_camp_array[i].distance < 0 );
 	}
@@ -450,7 +417,7 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 
 	//----- now take out the lowest rating ones -----//
 
-	for( i=attack_camp_count-1 ; i>=0 ; i-- )
+	for (int i = attack_camp_count - 1; i >= 0; i--)
 	{
 		if( totalCombatLevel - attack_camp_array[i].combat_level > maxTargetCombatLevel )
 		{
@@ -465,7 +432,7 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 
 	ai_attack_target_sync();
 
-	ai_attack_target_execute(!justMoveToFlag);
+	ai_attack_target_execute(defenseMode, justMoveToFlag);
 
 	return totalCombatLevel;
 }
@@ -569,6 +536,167 @@ int Nation::ai_attack_order_nearby_mobile(int targetXLoc, int targetYLoc, int ta
 //--------- End of function Nation::ai_attack_order_nearby_mobile --------//
 //
 
+//--------- Begin of function Nation::ai_collect_military_force --------//
+//
+void Nation::ai_collect_military_force(int targetXLoc, int targetYLoc, int targetRecno, std::vector<int>& camps, std::vector<int>& units, std::vector<int>& ourUnits)
+{
+	//--- the scanning distance is determined by the AI aggressiveness setting ---//
+
+	int scanRangeX = 5 + config.ai_aggressiveness * 2;
+	int scanRangeY = scanRangeX;
+
+	int xLoc1 = targetXLoc - scanRangeX;
+	int yLoc1 = targetYLoc - scanRangeY;
+	int xLoc2 = targetXLoc + scanRangeX;
+	int yLoc2 = targetYLoc + scanRangeY;
+
+	xLoc1 = MAX(xLoc1, 0);
+	yLoc1 = MAX(yLoc1, 0);
+	xLoc2 = MIN(xLoc2, MAX_WORLD_X_LOC - 1);
+	yLoc2 = MIN(yLoc2, MAX_WORLD_Y_LOC - 1);
+
+	//------------------------------------------//
+
+	//Collect all camps in the square + all camps linked to towns in the square
+	//Collect all units in the square
+	std::vector<int> towns;
+	Location* locPtr = nullptr;
+	for(int yLoc = yLoc1; yLoc <= yLoc2; yLoc++)
+	{
+		locPtr = world.get_loc(xLoc1, yLoc);
+		for(int xLoc = xLoc1; xLoc <= xLoc2; xLoc++, locPtr++)
+		{
+			if (locPtr->is_town())
+			{
+				int townRecno = locPtr->town_recno();
+				Town* townPtr = town_array[townRecno];
+				if (townPtr->nation_recno == targetRecno)
+				{
+					bool found = false;
+					for (int i = 0; i < towns.size(); i++)
+					{
+						if (towns[i] == townRecno)
+						{
+							found = true;
+							break;
+						}
+					}
+					if (!found)
+					{
+						towns.push_back(townRecno);
+					}
+				}
+			}
+			if (locPtr->is_firm())
+			{
+				int firmRecno = locPtr->firm_recno();
+				Firm* firmPtr = firm_array[firmRecno];
+				if (firmPtr->nation_recno == targetRecno && firmPtr->firm_id == FIRM_CAMP)
+				{
+					bool found = false;
+					for (int i = 0; i < camps.size(); i++)
+					{
+						if (camps[i] == firmRecno)
+						{
+							found = true;
+							break;
+						}
+					}
+					if (!found)
+					{
+						camps.push_back(firmRecno);
+					}
+				}
+			}
+			if (locPtr->has_unit(UNIT_LAND))
+			{
+				int unitRecno = locPtr->unit_recno(UNIT_LAND);
+				Unit* unitPtr = unit_array[unitRecno];
+				if (unitPtr->nation_recno == targetRecno)
+				{
+					units.push_back(unitRecno);
+				}
+				if (unitPtr->nation_recno == nation_recno)
+				{
+					ourUnits.push_back(nation_recno);
+				}
+			}
+		}
+	}
+
+	for (int i = 0; i < towns.size(); i++)
+	{
+		Town* townPtr = town_array[towns[i]];
+		for (int j = 0; j < townPtr->linked_firm_count; j++)
+		{
+			int firmRecno = townPtr->linked_firm_array[j];
+			Firm* firmPtr = firm_array[firmRecno];
+			if (firmPtr->nation_recno == targetRecno && firmPtr->firm_id == FIRM_CAMP)
+			{
+				bool found = false;
+				for (int k = 0; i < camps.size(); k++)
+				{
+					if (camps[k] == firmRecno)
+					{
+						found = true;
+						break;
+					}
+				}
+				if (!found)
+				{
+					camps.push_back(firmRecno);
+				}
+			}
+		}
+	}
+}
+//--------- End of function Nation::ai_collect_military_force --------//
+//
+
+//--------- Begin of function Nation::ai_evaluate_target_combat_level --------//
+//
+int Nation::ai_evaluate_target_combat_level(int targetXLoc, int targetYLoc, int targetRecno)
+{
+	std::vector<int> camps, units, ourUnits;
+	ai_collect_military_force(targetXLoc, targetYLoc, targetRecno, camps, units, ourUnits);
+	int totalCombatLevel = 0;
+	for (int i = 0; i < camps.size(); i++)
+	{
+		FirmCamp* firmCampPtr = (FirmCamp*)firm_array[camps[i]];
+		err_when(firmCampPtr == 0);
+		totalCombatLevel += firmCampPtr->total_combat_level();
+	}
+	for (int i = 0; i < units.size(); i++)
+	{
+		if (unit_array.is_deleted(units[i]))		// the unit is dying
+			continue;
+
+		Unit* unitPtr = unit_array[units[i]];
+		err_when(unitPtr == 0);
+		totalCombatLevel += unitPtr->unit_power();
+	}
+	if (targetRecno != nation_recno)		// if targetRecno == nation_recno units and ourUnits are the same, so we already counted them
+	{
+		for (int i = 0; i < ourUnits.size(); i++)
+		{
+			if (unit_array.is_deleted(ourUnits[i]))		// the unit is dying
+				continue;
+
+			Unit* unitPtr = unit_array[ourUnits[i]];
+			err_when(unitPtr == 0);
+			if (unitPtr->cur_action == SPRITE_ATTACK ||		// only units that are currently attacking or idle are counted, moving units may just be passing by
+				unitPtr->cur_action == SPRITE_IDLE )
+			{
+				totalCombatLevel -= unitPtr->unit_power();
+			}
+		}
+	}
+
+	return totalCombatLevel;
+}
+//--------- End of function Nation::ai_evaluate_target_combat_level --------//
+//
+
 //--------- Begin of function Nation::ai_attack_target_sync --------//
 //
 // Synchronize the timing of attacking a target. Camps that are further
@@ -627,35 +755,63 @@ void Nation::ai_attack_target_sync()
 // <int> directAttack - whether directly attack the target or
 //								just move close to the target.
 //
-void Nation::ai_attack_target_execute(int directAttack)
+void Nation::ai_attack_target_execute(int defenseMode, int justMoveToFlag)
 {
-	FirmCamp* firmCamp;
-	int		 firmRecno;
-
 	err_when( ai_attack_target_x_loc < 0 || ai_attack_target_x_loc >= MAX_WORLD_X_LOC );
 	err_when( ai_attack_target_y_loc < 0 || ai_attack_target_y_loc >= MAX_WORLD_Y_LOC );
 
 	//---- if the target no longer exist -----//
 
+	//DieselMachine TODO need better check for reset
 	if( ai_attack_target_nation_recno != get_target_nation_recno(ai_attack_target_x_loc, ai_attack_target_y_loc) )
 	{
 		reset_ai_attack_target();
 	}
 
+	//---- if enemy forces came and we need to cancel our attack -----//
+
+	if (!defenseMode && info.game_date % 10 == nation_recno % 10)
+	{
+		int targetCombatLevel = ai_evaluate_target_combat_level(ai_attack_target_x_loc, ai_attack_target_y_loc, ai_attack_target_nation_recno);
+		int ourCombatLevel = 0;
+		for (int i = 0; i < attack_camp_count; i++)
+		{
+			ourCombatLevel += attack_camp_array[i].combat_level;
+		}
+
+		//DieselMachine TODO this code is duplicated with ai_attack_target()
+		int minTargetCombatLevel = targetCombatLevel * (125+pref_force_projection/4) / 100;		// 125% to 150%
+
+		if (ourCombatLevel < minTargetCombatLevel)
+		{
+			for (int i = 0; i < attack_camp_count; i++)
+			{
+
+				int firmRecno = attack_camp_array[i].firm_recno;
+				FirmCamp* firmCamp = (FirmCamp*)firm_array[firmRecno];
+				if (firmCamp->patrol_unit_count > 0)
+				{
+					unit_array.assign_to_camp(firmCamp->loc_x1, firmCamp->loc_y1, COMMAND_AI, firmCamp->patrol_unit_array, firmCamp->patrol_unit_count);
+				}
+			}
+			reset_ai_attack_target();
+		}
+	}
+
 	//----------------------------------------//
 
-	for( int i=attack_camp_count-1 ; i>=0 ; i-- )
+
+	for (int i = attack_camp_count - 1; i>=0; i--)
 	{
 		//----- if it's still not the date to move to attack ----//
-
-		if( info.game_date < attack_camp_array[i].patrol_date )
+		//----- but if we are defending, we should move our soldiers immediately ----//
+		if(!defenseMode && info.game_date < attack_camp_array[i].patrol_date )
 			continue;
 
 		//-------------------------------------------------------//
 
-		firmRecno = attack_camp_array[i].firm_recno;
-
-		firmCamp = (FirmCamp*) firm_array[firmRecno];
+		int firmRecno = attack_camp_array[i].firm_recno;
+		FirmCamp* firmCamp = (FirmCamp*)firm_array[firmRecno];
 
 		if( firmCamp && (firmCamp->overseer_recno || firmCamp->worker_count) )
 		{
@@ -677,7 +833,7 @@ void Nation::ai_attack_target_execute(int directAttack)
 
 				//--- in defense mode, just move close to the target, the unit will start attacking themselves as their relationship is hostile already ---//
 
-				if( !directAttack )
+				if( justMoveToFlag )
 				{
 					unit_array.move_to(ai_attack_target_x_loc, ai_attack_target_y_loc, 0, firmCamp->patrol_unit_array,
 											 firmCamp->patrol_unit_count, COMMAND_AI);
@@ -700,13 +856,19 @@ void Nation::ai_attack_target_execute(int directAttack)
 
 		//--------- reset FirmCamp::is_attack_camp ---------//
 
-		if( firmCamp )
-			firmCamp->is_attack_camp = 0;
+		//if( firmCamp )
+			//firmCamp->is_attack_camp = 0;
 
 		//------- remove this from attack_camp_array -------//
 
-		misc.del_array_rec(attack_camp_array, attack_camp_count, sizeof(AttackCamp), i+1 );
-		attack_camp_count--;
+		//misc.del_array_rec(attack_camp_array, attack_camp_count, sizeof(AttackCamp), i+1 );
+		//attack_camp_count--;
+	}
+
+	//------ send soldiers to defend and forget about them -------//
+	if (defenseMode)
+	{
+		reset_ai_attack_target();
 	}
 }
 //---------- End of function Nation::ai_attack_target_execute --------//
@@ -741,65 +903,13 @@ void Nation::enable_should_attack_on_target(int targetXLoc, int targetYLoc)
 {
 	//------ set should attack to 1 --------//
 
-	int targetNationRecno = 0;
-
-	Location* locPtr = world.get_loc(targetXLoc, targetYLoc);
-
-	if( locPtr->has_unit(UNIT_LAND) )
-		targetNationRecno = unit_array[ locPtr->unit_recno(UNIT_LAND) ]->nation_recno;
-
-	else if( locPtr->is_firm() )
-		targetNationRecno = firm_array[locPtr->firm_recno()]->nation_recno;
-
-	else if( locPtr->is_town() )
-		targetNationRecno = town_array[locPtr->town_recno()]->nation_recno;
-
+	int targetNationRecno = get_target_nation_recno(targetXLoc, targetYLoc);
 	if( targetNationRecno )
 	{
 		set_relation_should_attack(targetNationRecno, 1, COMMAND_AI);
 	}
 }
 //--------- End of function Nation::enable_should_attack_on_target --------//
-
-
-//--------- Begin of static function get_target_nation_recno --------//
-//
-// Return the nation recno of the target.
-//
-static int get_target_nation_recno(int targetXLoc, int targetYLoc)
-{
-   Location* locPtr = world.get_loc(targetXLoc, targetYLoc);
-
-   if( locPtr->is_firm() )
-   {
-		return firm_array[locPtr->firm_recno()]->nation_recno;
-   }
-   else if( locPtr->is_town() )
-   {
-		return town_array[locPtr->town_recno()]->nation_recno;
-	}
-   else if( locPtr->has_unit(UNIT_LAND) )
-   {
-      return unit_array[locPtr->unit_recno(UNIT_LAND)]->nation_recno;
-   }
-
-   return 0;
-}
-//---------- End of static function get_target_nation_recno --------//
-
-
-//------ Begin of function sort_attack_camp_function ------//
-//
-static int sort_attack_camp_function( const void *a, const void *b )
-{
-	int ratingA = ((AttackCamp*)a)->combat_level - ((AttackCamp*)a)->distance;
-	int ratingB = ((AttackCamp*)b)->combat_level - ((AttackCamp*)b)->distance;
-	int rc = ratingB - ratingA;
-	if( rc )
-		return rc;
-	return ((AttackCamp*)b)->firm_recno - ((AttackCamp*)a)->firm_recno;
-}
-//------- End of function sort_attack_camp_function ------//
 
 
 //--------- Begin of function Nation::think_secret_attack --------//
@@ -934,3 +1044,43 @@ int Nation::think_secret_attack()
 }
 //---------- End of function Nation::think_secret_attack --------//
 
+
+//--------- Begin of static function get_target_nation_recno --------//
+//
+// Return the nation recno of the target.
+//
+static int get_target_nation_recno(int targetXLoc, int targetYLoc)
+{
+   Location* locPtr = world.get_loc(targetXLoc, targetYLoc);
+
+   if( locPtr->is_firm() )
+   {
+		return firm_array[locPtr->firm_recno()]->nation_recno;
+   }
+   else if( locPtr->is_town() )
+   {
+		return town_array[locPtr->town_recno()]->nation_recno;
+	}
+   else if( locPtr->has_unit(UNIT_LAND) )
+   {
+      return unit_array[locPtr->unit_recno(UNIT_LAND)]->nation_recno;
+   }
+
+   return 0;
+}
+//---------- End of static function get_target_nation_recno --------//
+
+
+//------ Begin of function sort_attack_camp_function ------//
+//
+static int sort_attack_camp_function( const void *a, const void *b )
+{
+	//DieselMachine TODO count distance better
+	int ratingA = ((AttackCamp*)a)->combat_level - ((AttackCamp*)a)->distance;
+	int ratingB = ((AttackCamp*)b)->combat_level - ((AttackCamp*)b)->distance;
+	int rc = ratingB - ratingA;
+	if( rc )
+		return rc;
+	return ((AttackCamp*)b)->firm_recno - ((AttackCamp*)a)->firm_recno;
+}
+//------- End of function sort_attack_camp_function ------//

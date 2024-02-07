@@ -30,6 +30,10 @@
 
 void Nation::think_military()
 {
+	//DieselMachine TODO camps for soldiers are built at Town::think_build_camp()
+	//DieselMachine TODO maybe we should build camps for war machines but not for soldiers here
+	return;
+
 	//---- don't build new camp if we our food consumption > production ----//
 
 	if( yearly_food_change() < 0 )

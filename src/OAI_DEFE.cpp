@@ -54,7 +54,7 @@ int Nation::ai_defend(int attackerUnitRecno)
 
 	//-- the value returned is enemy strength minus your own strength, so if it's positive, it means that your enemy is stronger than you, otherwise you're stronger than your enemy --//
 
-	int attackCombatLevel = ai_attack_target(attackerXLoc, attackerYLoc, enemyCombatLevel, 1);		// 1-defense mode
+	int attackCombatLevel = ai_attack_target(attackerXLoc, attackerYLoc, enemyCombatLevel, 1, 1);		// 1-defense mode, 1-just move to point
 
 	//------ request military aid from allies ----//
 

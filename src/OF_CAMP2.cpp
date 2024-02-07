@@ -390,8 +390,7 @@ void FirmCamp::think_recruit()
 	}*/
 	else
 	{
-		//DieselMachine
-		if( nationPtr->total_jobless_population > nationPtr->total_population * (30 + nationPtr->pref_inc_pop_by_growth / 5) / 100.0 )	// 30% to 50%
+		if( nationPtr->total_jobless_population > nationPtr->all_population() * (30 + nationPtr->pref_inc_pop_by_growth / 5) / 100.0 )	// 30% to 50%
 		{
 			combatDiff = 1000;		// recruit as many as possible
 		}
