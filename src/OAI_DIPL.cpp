@@ -1019,6 +1019,9 @@ int Nation::think_give_tech()
 //
 int Nation::think_request_surrender()
 {
+	if( info.game_date < info.game_start_date + 1000)	// offer 3 years after the game starts
+		return 0;
+
 	if( misc.random(5) != 0 )		// don't do this too often
 		return 0;
 
@@ -1032,7 +1035,7 @@ int Nation::think_request_surrender()
 
 	//----- calculate the amount this nation can offer ----//
 
-	int offerAmount = (int)cash - MIN(5000, (int)fixed_expense_365days());
+	int offerAmount = (int)(cash * 3.0 / 4.0) - MIN(5000, (int)fixed_expense_365days());
 
 	static int amtArray[] = { 5000, 7500, 10000, 15000, 20000, 30000, 40000, 50000 };
 

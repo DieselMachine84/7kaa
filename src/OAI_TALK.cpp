@@ -996,7 +996,7 @@ int Nation::consider_military_aid(TalkMsg* talkMsg)
 	int targetCombatLevel = mobile_defense_combat_level( unitPtr->next_x_loc(), unitPtr->next_y_loc(),
 									unitPtr->nation_recno, 0, hasWar );
 
-	if( ai_attack_target(unitPtr->next_x_loc(), unitPtr->next_y_loc(), targetCombatLevel, 0, 1 ) )		//0-not defense mode, 1-just move to flag 
+	if( ai_attack_target(unitPtr->next_x_loc(), unitPtr->next_y_loc(), targetCombatLevel, 0, 1 ) )		//0-not defense mode, 1-just move to flag
 	{
 		fromRelation->last_military_aid_date = info.game_date;
 		return 1;

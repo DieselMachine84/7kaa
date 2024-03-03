@@ -523,10 +523,10 @@ void Town::next_day()
 
 	//------ collect yearly tax -------//
 
-	if( nation_recno && info.game_month==1 && info.game_day==1 )
+	/*if( nation_recno && info.game_month==1 && info.game_day==1 )
 	{
 		collect_yearly_tax();
-	}
+	}*/
 
 	//------ catching spies -------//
 
@@ -1117,8 +1117,13 @@ void Town::population_grow()
 	{
 		//-- the population growth in an independent town is slower than in a nation town ---//
 
+		//if( nation_recno )
+			//race_pop_growth_array[i] += race_pop_array[i] * (100+quality_of_life) / 100;
+		float loyaltyMultiplier = race_loyalty_array[i] * 4.0 / 50.0 - 3.0;
+		if (loyaltyMultiplier < 0.0)
+			loyaltyMultiplier = 0.0;
 		if( nation_recno )
-			race_pop_growth_array[i] += race_pop_array[i] * (100+quality_of_life) / 100;
+			race_pop_growth_array[i] += (int)((float)race_pop_array[i] * loyaltyMultiplier);
 		else
 			race_pop_growth_array[i] += race_pop_array[i];
 
@@ -3732,6 +3737,46 @@ int Town::linked_active_camp_count()
 	return linkedCount;
 }
 //---------- End of function Town::linked_active_camp_count --------//
+
+
+//-------- Begin of function Town::linked_camp_soldiers_count ------//
+//
+// No. of soldiers in linked camps counted respect to other towns
+//
+double Town::linked_camp_soldiers_count()
+{
+	double townSoldiersCount = 0.0;
+	for (int firmIndex = 0; firmIndex < linked_firm_count; firmIndex++)
+	{
+		Firm* firmPtr = firm_array[linked_firm_array[firmIndex]];
+
+		if (firmPtr->nation_recno != nation_recno || firmPtr->firm_id != FIRM_CAMP)
+			continue;
+
+		FirmCamp* campPtr = (FirmCamp*)firmPtr;
+
+		double linkedTownsCount = 0.0;
+		for (int townIndex = 0; townIndex < campPtr->linked_town_count; townIndex++)
+		{
+			if(town_array.is_deleted(campPtr->linked_town_array[townIndex]))
+				continue;
+
+			Town* firmTownPtr = town_array[campPtr->linked_town_array[townIndex]];
+
+			if (firmTownPtr->nation_recno != nation_recno)
+				continue;
+
+			linkedTownsCount += 1.0;
+		}
+
+		if (linkedTownsCount > 0.0)
+		{
+			townSoldiersCount += (campPtr->worker_count + campPtr->patrol_unit_count + campPtr->coming_unit_count) / linkedTownsCount;
+		}
+	}
+	return townSoldiersCount;
+}
+//---------- End of function Town::linked_camp_soldiers_count --------//
 
 
 //------- Begin of function Town::auto_defense ---------//

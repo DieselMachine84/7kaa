@@ -111,6 +111,7 @@ public:
 
 	void		update_defense_unit(short unitRecno);
 	void		set_employ_worker(char flag);
+	void 		validate_patrol_unit();
 
 	virtual	FirmCamp *cast_to_FirmCamp() { return this; };
 
@@ -119,6 +120,7 @@ public:
 	void		process_ai();
 	int		ai_should_close();			// overloaded function 
 	void		ai_update_link_status();
+	bool		linkedToIndependentVillage();
 
 	int 		cur_commander_leadership(int bestRaceId=0);
 	int 		new_commander_leadership(int newRaceId, int newSkillLevel);
@@ -139,14 +141,14 @@ private:
 	void 		pay_weapon_expense();
 
 	void 		update_influence();
-	void 		validate_patrol_unit();
 
 	//-------------- AI functions --------------//
 
 	void		ai_reset_defense_mode();
+	bool		think_close();
 	void		think_recruit();
 	int 		think_attack();
-	int  		ai_recruit(int combatLevelNeeded);
+	int  		ai_recruit(int combatLevelNeeded, int realComingCount);
 	void		ai_attack_town_defender(Unit*);
 	int 		think_attack_nearby_enemy();
 	void 		think_change_town_link();
@@ -168,6 +170,7 @@ private:
 
 	int 		think_assign_better_commander();
 	int 		best_commander_race();
+	void 		think_optimize_soldiers_race();
 };
 #pragma pack()
 

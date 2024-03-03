@@ -71,7 +71,25 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 	//--- order nearby mobile units who are on their way to home camps to join this attack mission. ---//
 
 	if( defenseMode )
+	{
 		useAllCamp = 1;
+
+		//reset current attack if we need to defend
+		for (int i = 0; i < attack_camp_count; i++)
+		{
+			int firmRecno = attack_camp_array[i].firm_recno;
+			if (!firm_array.is_deleted(firmRecno))
+			{
+				FirmCamp* firmCamp = (FirmCamp*)firm_array[firmRecno];
+				firmCamp->validate_patrol_unit();
+				if (firmCamp->patrol_unit_count > 0)
+				{
+					unit_array.assign_to_camp(firmCamp->loc_x1, firmCamp->loc_y1, COMMAND_AI, firmCamp->patrol_unit_array, firmCamp->patrol_unit_count);
+				}
+			}
+		}
+		reset_ai_attack_target();
+	}
 
 	if( defenseMode )		// only for defense mode, for attack mission, we should plan and organize it better
 	{
@@ -108,7 +126,7 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 	err_when( targetXLoc < 0 || targetXLoc >= MAX_WORLD_X_LOC );
 	err_when( targetYLoc < 0 || targetYLoc >= MAX_WORLD_Y_LOC );
 
-	//DieselMachine TODO if we are attacking camp and it is sold or destroyed, think about attacking another camp
+	//DieselMachine TODO if we are attacking target camp and it is sold or destroyed, think about attacking another camp
 	ai_attack_target_x_loc = targetXLoc;
 	ai_attack_target_y_loc = targetYLoc;
 	ai_attack_target_nation_recno = get_target_nation_recno(targetXLoc, targetYLoc);
@@ -212,6 +230,9 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 		if( firmCamp->firm_recno == kingFirmRecno )
 			continue;
 
+		//if (defenseMode && misc.points_distance(firmCamp->loc_x1, firmCamp->loc_y1, targetXLoc, targetYLoc) > MAX_WORLD_X_LOC / 2)
+			//continue;
+
 		if( leadAttackCampRecno && firmCamp->firm_recno == leadAttackCampRecno )
 			continue; // don't double count
 
@@ -247,9 +268,12 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 		int combatLevel = firmCamp->total_combat_level();
 		err_when( combatLevel < 0 );
 
-		attack_camp_array[attack_camp_count].firm_recno = firmCamp->firm_recno;
-		attack_camp_array[attack_camp_count].combat_level = combatLevel;
-		attack_camp_count++;
+		if (attack_camp_count < MAX_SUITABLE_ATTACK_CAMP - 1)
+		{
+			attack_camp_array[attack_camp_count].firm_recno = firmCamp->firm_recno;
+			attack_camp_array[attack_camp_count].combat_level = combatLevel;
+			attack_camp_count++;
+		}
 	}
 
 	//---- locate for camps that are extra for protecting towns (there are basic ones doing the protection job only) ----//
@@ -312,6 +336,10 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 					if( firmCamp->is_attack_camp )
 						continue;
 
+					//DieselMachine TODO
+					//if (defenseMode && misc.points_distance(firmCamp->loc_x1, firmCamp->loc_y1, targetXLoc, targetYLoc) > MAX_WORLD_X_LOC / 4)
+						//continue;
+
 					if( leadAttackCampRecno && firmCamp->firm_recno == leadAttackCampRecno )
 						continue; // don't double count
 
@@ -325,13 +353,14 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 
 				//--- if this is a civilian firm, add needed protection points ---//
 
-				else
+				//DieselMachine this is already counted in Town::protection_needed
+				/*else
 				{
 					if( firmPtr->firm_id == FIRM_MARKET )
 						protectionNeeded += ((FirmMarket*)firmPtr)->stock_value_index();
 					else
 						protectionNeeded += (int) firmPtr->productivity;
-				}
+				}*/
 			}
 
 			//--- see if the current combat level is larger than the protection needed ---//
@@ -349,7 +378,7 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 					{
 						//--- if so, add this camp to the suitable camp list ---//
 
-						if( attack_camp_count < MAX_SUITABLE_ATTACK_CAMP )
+						if( attack_camp_count < MAX_SUITABLE_ATTACK_CAMP - 1 )
 						{
 							//--- this camp can be linked to a town previously processed already (in this case, two towns linked to the same camp) ---//
 
@@ -432,7 +461,7 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 
 	ai_attack_target_sync();
 
-	ai_attack_target_execute(defenseMode, justMoveToFlag);
+	ai_attack_target_execute(defenseMode, justMoveToFlag, true);
 
 	return totalCombatLevel;
 }
@@ -755,7 +784,7 @@ void Nation::ai_attack_target_sync()
 // <int> directAttack - whether directly attack the target or
 //								just move close to the target.
 //
-void Nation::ai_attack_target_execute(int defenseMode, int justMoveToFlag)
+void Nation::ai_attack_target_execute(int defenseMode, int justMoveToFlag, bool startAttack)
 {
 	err_when( ai_attack_target_x_loc < 0 || ai_attack_target_x_loc >= MAX_WORLD_X_LOC );
 	err_when( ai_attack_target_y_loc < 0 || ai_attack_target_y_loc >= MAX_WORLD_Y_LOC );
@@ -766,6 +795,16 @@ void Nation::ai_attack_target_execute(int defenseMode, int justMoveToFlag)
 	if( ai_attack_target_nation_recno != get_target_nation_recno(ai_attack_target_x_loc, ai_attack_target_y_loc) )
 	{
 		reset_ai_attack_target();
+	}
+
+	//One year passed. Cancel long running attack
+	//This may happen when AI tries to capture independent town and do not have enough soldiers to finish capturing
+	for (int i = attack_camp_count - 1; i >= 0; i--)
+	{
+		if (info.game_date > attack_camp_array[i].patrol_date + 365)
+		{
+			reset_ai_attack_target();
+		}
 	}
 
 	//---- if enemy forces came and we need to cancel our attack -----//
@@ -786,26 +825,29 @@ void Nation::ai_attack_target_execute(int defenseMode, int justMoveToFlag)
 		{
 			for (int i = 0; i < attack_camp_count; i++)
 			{
-
 				int firmRecno = attack_camp_array[i].firm_recno;
-				FirmCamp* firmCamp = (FirmCamp*)firm_array[firmRecno];
-				if (firmCamp->patrol_unit_count > 0)
+				if (!firm_array.is_deleted(firmRecno))
 				{
-					unit_array.assign_to_camp(firmCamp->loc_x1, firmCamp->loc_y1, COMMAND_AI, firmCamp->patrol_unit_array, firmCamp->patrol_unit_count);
+					FirmCamp* firmCamp = (FirmCamp*)firm_array[firmRecno];
+					firmCamp->validate_patrol_unit();
+					if (firmCamp->patrol_unit_count > 0)
+					{
+						unit_array.assign_to_camp(firmCamp->loc_x1, firmCamp->loc_y1, COMMAND_AI, firmCamp->patrol_unit_array, firmCamp->patrol_unit_count);
+					}
 				}
 			}
 			reset_ai_attack_target();
 		}
 	}
 
-	//----------------------------------------//
-
+	if (!startAttack)
+		return;
 
 	for (int i = attack_camp_count - 1; i>=0; i--)
 	{
 		//----- if it's still not the date to move to attack ----//
 		//----- but if we are defending, we should move our soldiers immediately ----//
-		if(!defenseMode && info.game_date < attack_camp_array[i].patrol_date )
+		if (!defenseMode && (info.game_date < attack_camp_array[i].patrol_date || info.game_date > attack_camp_array[i].patrol_date + 10))
 			continue;
 
 		//-------------------------------------------------------//
@@ -833,6 +875,7 @@ void Nation::ai_attack_target_execute(int defenseMode, int justMoveToFlag)
 
 				//--- in defense mode, just move close to the target, the unit will start attacking themselves as their relationship is hostile already ---//
 
+				firmCamp->validate_patrol_unit();
 				if( justMoveToFlag )
 				{
 					unit_array.move_to(ai_attack_target_x_loc, ai_attack_target_y_loc, 0, firmCamp->patrol_unit_array,

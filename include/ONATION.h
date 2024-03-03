@@ -169,6 +169,12 @@ struct AttackCamp
 };
 #pragma pack()
 
+struct TownMainCamp
+{
+	short TownRecno;
+	short CampRecno;
+};
+
 //--------- Define class Nation ---------//
 
 class  Firm;
@@ -441,7 +447,7 @@ public:
 
 	int 			ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLevel, int defenseMode=0, int justMoveToFlag=0, int attackerMinCombatLevel=0, int attackerCampRecno=0, int useAllCamp=0);
 	void 			ai_attack_target_sync();
-	void 			ai_attack_target_execute(int defenseMode, int justMoveToFlag);
+	void 			ai_attack_target_execute(int defenseMode, int justMoveToFlag, bool startAttack);
 	int 			ai_attack_order_nearby_mobile(int targetXLoc, int targetYLoc, int targetCombatLevel);
 	void			ai_collect_military_force(int targetXLoc, int targetYLoc, int targetRecno, std::vector<int>& camps, std::vector<int>& units, std::vector<int>& ourUnits);
 	int 			ai_evaluate_target_combat_level(int targetXLoc, int targetYLoc, int targetRecno);
@@ -457,7 +463,7 @@ public:
 	int 			think_attack_monster();
 	int 			think_monster_target(int& targetCombatLevel);
 
-	int			ai_should_expand_military();
+	int 			ai_should_expand_military();
 	int 			ai_is_troop_need_new_camp();
 	int 			ai_has_too_many_camp();
 
@@ -489,11 +495,11 @@ public:
 	//--------------------------------------------------------------//
 
 	int 			think_capture_independent();
-	int 			capture_expected_resistance(int townRecno, int *captureUnitRecno);
+	int 			capture_expected_resistance(int townRecno, int raceId, int *captureUnitRecno);
 	int 			start_capture(int townRecno, int captureUnitRecno);
 	int 			capture_build_camp(int townRecno, int raceId, int captureUnitRecno);
 	int 			find_best_capturer(int townRecno, int raceId, int& bestResistanceReduce);
-	int 			hire_best_capturer(int townRecno, int raceId);
+	int 			hire_best_capturer(int townRecno, int raceId, int& targetResistance, bool hire);
 	int			mobilize_capturer(int unitRecno);
 
 	int 			think_capture_new_enemy_town(Town* capturerTown, int useAllCamp=0);

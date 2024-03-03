@@ -33,7 +33,8 @@
 //
 void Nation::think_town()
 {
-	optimize_town_race();
+	//DieselMachine TODO buggy code, rewrite
+	//optimize_town_race();
 }
 //---------- End of function Nation::think_town --------//
 

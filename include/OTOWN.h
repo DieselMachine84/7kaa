@@ -245,6 +245,7 @@ public:
 	void  release_firm_link(int);
 	void  release_town_link(int);
 	int	  linked_active_camp_count();
+	double linked_camp_soldiers_count();
 	int   can_toggle_firm_link(int firmRecno);
 	void  update_camp_link();
 

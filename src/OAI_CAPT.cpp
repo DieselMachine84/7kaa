@@ -79,6 +79,22 @@ int Nation::think_capture_independent()
 	int 	townRecno;
 	Town* townPtr;
 
+	int numberOfTownsWeAlreadyCapturing = 0;
+	for (int firmRecno = 1; firmRecno <= firm_array.size(); firmRecno++)
+	{
+		if (firm_array.is_deleted(firmRecno))
+			continue;
+
+		Firm* firmPtr = firm_array[firmRecno];
+		if (firmPtr->nation_recno != nation_recno || firmPtr->firm_id != FIRM_CAMP)
+			continue;
+
+		FirmCamp* campPtr = (FirmCamp*)firmPtr;
+		//DieselMachine TODO not accurate as we may count the same village several time
+		if (campPtr->linkedToIndependentVillage())
+			numberOfTownsWeAlreadyCapturing++;
+	}
+
 	for(townRecno=town_array.size(); townRecno>0; townRecno--)
 	{
 		if(town_array.is_deleted(townRecno))
@@ -95,8 +111,15 @@ int Nation::think_capture_independent()
 		if( townPtr->rebel_recno )			// towns controlled by rebels will not drop in resistance even if a command base is present
 			continue;
 
+		if (numberOfTownsWeAlreadyCapturing >= 3 && townPtr->race_pop_array[townPtr->majority_race() - 1] != townPtr->population)	// do not capture too many villages
+			continue;
+
+		if (townPtr->race_pop_array[townPtr->majority_race() - 1] < 15)		// do not capture villages with low population
+			continue;
+
 		//------ only if we have a presence/a base town in this region -----//
 
+		//DieselMachine TODO consider capture villages on islands
 		if( !has_base_town_in_region(townPtr->region_id) )
 			continue;
 
@@ -112,11 +135,13 @@ int Nation::think_capture_independent()
 
 			//------ if we already have a camp linked to this town -----//
 
+			//DieselMachine TODO what if this camp is linked to our town also and is not intended for capturing?
 			if( firmPtr->nation_recno == nation_recno )
 				break;
 
 			//--- if there is an overseer with high leadership and right race in the opponent's camp, don't bother to compete with him ---//
 
+			//DieselMachine TODO maybe we need to compete. Think about it
 			if( firmPtr->overseer_recno )
 			{
 				Unit* unitPtr = unit_array[firmPtr->overseer_recno];
@@ -135,13 +160,13 @@ int Nation::think_capture_independent()
 		//------ no linked camps interfering with potential capture ------//
 
 		int captureUnitRecno;
-		int targetResistance  = capture_expected_resistance(townRecno, &captureUnitRecno);
-		int averageResistance = townPtr->average_resistance(nation_recno);
-		int minResistance 	 = MIN( averageResistance, targetResistance );
+		int targetResistance = capture_expected_resistance(townRecno, townPtr->majority_race(), &captureUnitRecno);
+		//int averageResistance = townPtr->average_resistance(nation_recno);
+		//int minResistance 	 = MIN( averageResistance, targetResistance );
 
-		if( minResistance < 50 - pref_peacefulness/5 )		// 30 to 50 depending on
+		if( targetResistance < 50 - pref_peacefulness/5 )		// 30 to 50 depending on
 		{
-			captureTownQueue.push({townRecno, minResistance, captureUnitRecno});
+			captureTownQueue.push({townRecno, targetResistance, captureUnitRecno});
 		}
 	}
 
@@ -188,7 +213,9 @@ int Nation::think_capture_independent()
 		}
 
 		if( start_capture( captureRecno, captureUnitRecno ) )
+		{
 			return 1;
+		}
 	}
 
 	return 0;
@@ -213,7 +240,7 @@ int Nation::should_use_cash_to_capture()
 // The lowest resistance can be expected if we are going to capture the
 // town.
 //
-int Nation::capture_expected_resistance(int townRecno, int *captureUnitRecno)
+int Nation::capture_expected_resistance(int townRecno, int raceId, int *captureUnitRecno)
 {
 	//--- we have plenty of cash, use cash to decrease the resistance of the villagers ---//
 
@@ -236,31 +263,24 @@ int Nation::capture_expected_resistance(int townRecno, int *captureUnitRecno)
 
 	//---- see if there are general available for capturing this town ---//
 
-	int majorityRace = townPtr->majority_race();
-
-	//DieselMachine
 	int targetResistance = 100;
-	int bestCapturer = find_best_capturer(townRecno, majorityRace, /*out*/ targetResistance);
+	int bestCapturer = find_best_capturer(townRecno, raceId, /*out*/ targetResistance);
 	if (bestCapturer == 0)
 	{
-		bestCapturer = hire_best_capturer(townRecno, majorityRace);
+		bestCapturer = hire_best_capturer(townRecno, raceId, /*out*/ targetResistance, false);
 	}
+
 	if (bestCapturer != 0)
 	{
 		*captureUnitRecno = bestCapturer;
-		targetResistance = 0;
+		return ( targetResistance * townPtr->race_pop_array[raceId-1]
+			   + averageResistance * (townPtr->population - townPtr->race_pop_array[raceId-1]) )
+			/ townPtr->population;
 	}
 	else
 	{
-		return 100;
+		return targetResistance;
 	}
-
-	int resultResistance =
-		( targetResistance * townPtr->race_pop_array[majorityRace-1] +
-		  averageResistance * (townPtr->population - townPtr->race_pop_array[majorityRace-1]) )
-		/ townPtr->population;
-
-	return resultResistance;
 }
 //---------- End of function Nation::capture_expected_resistance ---------//
 
@@ -299,11 +319,24 @@ int Nation::capture_build_camp(int townRecno, int raceId, int captureUnitRecno)
 
 	short buildXLoc, buildYLoc;
 
-	if( !find_best_firm_loc(FIRM_CAMP, captureTown->loc_x1, captureTown->loc_y1, buildXLoc, buildYLoc) )
+	if (!find_best_firm_loc(FIRM_CAMP, captureTown->loc_x1, captureTown->loc_y1, buildXLoc, buildYLoc))
 	{
 		captureTown->no_neighbor_space = 1;
 		return 0;
 	}
+
+	//------- send construction worker to build the camp -------//
+
+	/*char resultFlag;
+	int actionRecno = add_action(buildXLoc, buildYLoc, captureTown->loc_x1, captureTown->loc_y1, ACTION_AI_BUILD_FIRM, FIRM_CAMP, 1);
+
+	if (actionRecno)
+	{
+		process_action(actionRecno);
+		return 1;
+	}
+
+	return 0;*/
 
 	//---- find the best available general for the capturing action ---//
 
@@ -314,7 +347,7 @@ int Nation::capture_build_camp(int townRecno, int raceId, int captureUnitRecno)
 		unitRecno = find_best_capturer(townRecno, raceId, targetResistance);
 
 	if( !unitRecno )
-		unitRecno = hire_best_capturer(townRecno, raceId);
+		unitRecno = hire_best_capturer(townRecno, raceId, targetResistance, true);
 
 	if( !unitRecno )
 	{
@@ -368,7 +401,7 @@ int Nation::capture_build_camp(int townRecno, int raceId, int captureUnitRecno)
 //
 int Nation::find_best_capturer(int townRecno, int raceId, int& bestTargetResistance)
 {
-	#define MIN_CAPTURE_RESISTANCE_DEC 	20		// if we assign a unit as the commander, the minimum expected resistance decrease should be 20, otherwise we don't do it.
+	//#define MIN_CAPTURE_RESISTANCE_DEC 	20		// if we assign a unit as the commander, the minimum expected resistance decrease should be 20, otherwise we don't do it.
 
 	Unit* unitPtr;
 	Town* targetTown = town_array[townRecno];
@@ -406,6 +439,8 @@ int Nation::find_best_capturer(int townRecno, int raceId, int& bestTargetResista
 		if( unitPtr->unit_mode == UNIT_MODE_OVERSEE )
 		{
 			firmPtr = firm_array[unitPtr->unit_mode_para];
+			if (firmPtr->firm_id != FIRM_CAMP)		//Use generals only from forts
+				continue;
 
 			//--- check if the unit currently in a command base trying to take over an independent town ---//
 
@@ -462,7 +497,6 @@ int Nation::find_best_capturer(int townRecno, int raceId, int& bestTargetResista
 //
 int Nation::mobilize_capturer(int unitRecno)
 {
-
 	Unit* unitPtr = unit_array[unitRecno];
 
 	if( unitPtr->unit_mode == UNIT_MODE_OVERSEE )
@@ -498,7 +532,7 @@ int Nation::mobilize_capturer(int unitRecno)
 
 			if( unitRecno )
 			{
-				add_action(townPtr->loc_x1, townPtr->loc_y1, -1, -1, ACTION_AI_ASSIGN_OVERSEER, FIRM_CAMP);
+				add_action(firmPtr->loc_x1, firmPtr->loc_y1, -1, -1, ACTION_AI_ASSIGN_OVERSEER, FIRM_CAMP);
 				break;
 			}
 		}
@@ -525,9 +559,9 @@ int Nation::mobilize_capturer(int unitRecno)
 //
 // return: <int> the recno of the unit hired.
 //
-int Nation::hire_best_capturer(int townRecno, int raceId)
+int Nation::hire_best_capturer(int townRecno, int raceId, int& targetResistance, bool hire)
 {
-	if( !ai_should_hire_unit(30) )		// 30 - importance rating
+	if ((cash < 5000 * (100 + pref_cash_reserve) / 100) && !ai_should_hire_unit(30))  //cash from 5000 to 10000, 30 - importance rating
 		return 0;
 
 	FirmInn	*firmInn;
@@ -535,10 +569,11 @@ int Nation::hire_best_capturer(int townRecno, int raceId)
 	InnUnit *innUnit;
 	Skill		*innUnitSkill;
 	int		i, j, innUnitCount, curRating;
-	//DieselMachine
-	int		bestRating=80, bestInnRecno=0, bestInnUnitId=0;
+	int		bestRating=70, bestInnRecno=0, bestInnUnitId=0;
 	Town* 	townPtr = town_array[townRecno];
 	int		destRegionId = world.get_region_id(townPtr->loc_x1, townPtr->loc_y1);
+
+	targetResistance = 100;
 
 	for(i=0; i<ai_inn_count; i++)
 	{
@@ -591,16 +626,23 @@ int Nation::hire_best_capturer(int townRecno, int raceId)
 	if( !bestInnUnitId )
 		return 0;
 
+	int unitInfluence = bestRating * 2 / 3;		// 66% of the leadership
+	unitInfluence += (int)(reputation / 2.0);
+	unitInfluence = MIN(100, unitInfluence);
+	targetResistance = 100 - unitInfluence; 	// influence of this unit if he is assigned as a commander of a military camp
+
 	//----------------------------------------------------//
+	int unitRecno = 0;
+	if (hire)
+	{
+		firmInn = (FirmInn*) firm_array[bestInnRecno];
 
-	firmInn = (FirmInn*) firm_array[bestInnRecno];
+		unitRecno = firmInn->hire(bestInnUnitId);
+		if( !unitRecno )
+			return 0;
 
-	int unitRecno = firmInn->hire(bestInnUnitId);
-
-	if( !unitRecno )
-		return 0;
-
-	unit_array[unitRecno]->set_rank(RANK_GENERAL);
+		unit_array[unitRecno]->set_rank(RANK_GENERAL);
+	}
 
 	return unitRecno;
 }

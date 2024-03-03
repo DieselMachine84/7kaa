@@ -31,6 +31,8 @@
 
 void Nation::think_reduce_expense()
 {
+	return;
+
 	if( true_profit_365days() > 0 || cash > 5000 * pref_cash_reserve / 100 )
 		return;
 
@@ -87,7 +89,7 @@ int Nation::ai_should_spend(int importanceRating, float spendAmt)
 		return 0;
 
 	float fixedExpense = fixed_expense_365days();
-	float stdCashLevel = MAX(fixedExpense,2000) * (150+pref_cash_reserve) / 100;
+	float stdCashLevel = MAX(fixedExpense,2000) * (150+pref_cash_reserve) / 100;  //from 3000 to 5000
 	float trueProfit = true_profit_365days();
 
 	//----- if we are losing money, don't spend on non-important things -----//
@@ -100,7 +102,7 @@ int Nation::ai_should_spend(int importanceRating, float spendAmt)
 
 	//--------------------------------------//
 
-	float curCashLevel = 100 * (cash-spendAmt) / (stdCashLevel*2);
+	float curCashLevel = 100 * (cash-spendAmt) / (stdCashLevel*2);  //cash = 0 means 0, cash = (from 6000 to 10000) means 100
 
 	return importanceRating >= (100-curCashLevel);
 }

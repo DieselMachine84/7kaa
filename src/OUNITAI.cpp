@@ -78,6 +78,7 @@ void Unit::process_ai()
 
 		if( is_visible() && misc.random(365 * FRAMES_PER_DAY)==0 )		// if the unit stay outside for one year, it will get caught
 		{
+			//DieselMachine TODO check him with a counterspy instead
 			stop2();
 			resign(COMMAND_AI);
 			return;
@@ -211,7 +212,8 @@ void Unit::process_ai()
 
 				if( !leader_unit_recno )		// only when the unit is not led by a commander
 				{
-					resign(COMMAND_AI);
+					//DieselMachine TODO maybe not resign but find him a better place?
+					//resign(COMMAND_AI);
 				}
 				else
 				{
@@ -444,7 +446,7 @@ int Unit::think_general_action()
 
 	//--- if the skill of the general and the number of soldiers he commands is not large enough to justify building a new camp ---//
 
-	else if( skill.skill_level + team_info->member_count*4
+	else if( skill.skill_level/* + team_info->member_count*4*/
 				< 40 + ownNation->pref_keep_general/5 )					// 40 to 60
 	{
 		rc = 1;
@@ -461,6 +463,8 @@ int Unit::think_general_action()
 
 	if( rc )
 	{
+		for (int i = 0; i < 4; i++)
+			reward(nation_recno);
 		set_rank(RANK_SOLDIER);
 		return think_normal_human_action();
 	}
@@ -499,6 +503,19 @@ int Unit::think_leader_action()
 		//--- if the commander of this camp is the king, never replace him ---//
 
 		if( firmCamp->overseer_recno == nationPtr->king_unit_recno )
+			continue;
+
+		bool isCapturingCamp = false;
+		for (int j = 0; j < firmCamp->linked_town_count; j++)
+		{
+			Town* linkedTown = town_array[firmCamp->linked_town_array[j]];
+			if (linkedTown->nation_recno == 0)
+			{
+				isCapturingCamp = true;
+			}
+		}
+		//--- we have separate logic for choosing generals of capturing camps ---//
+		if (isCapturingCamp)
 			continue;
 
 		//-------------------------------------//
@@ -543,7 +560,7 @@ int Unit::think_leader_action()
 
 	//-- if there is room in the camp to host all soldiers led by this general --//
 
-	if( team_info->member_count-1 <= MAX_WORKER-bestCamp->worker_count )
+	if(team_info->member_count > 0 && team_info->member_count-1 <= MAX_WORKER-bestCamp->worker_count )
 	{
 		validate_team();
 
@@ -621,28 +638,64 @@ int Unit::think_normal_human_action()
 
 				if( firmPtr->is_worker_full() )
 				{
-					//---- get the lowest skill worker of the firm -----//
-
-					Worker* workerPtr = firmPtr->worker_array;
-					int	  minSkill=100;
-
-					for( int j=0 ; j<firmPtr->worker_count ; j++, workerPtr++ )
+					if (firmPtr->firm_id != FIRM_CAMP)
 					{
-						if( workerPtr->skill_level < minSkill )
-							minSkill = workerPtr->skill_level;
+						//---- get the lowest skill worker of the firm -----//
+
+						Worker* workerPtr = firmPtr->worker_array;
+						int	  minSkill=100;
+
+						for( int j=0 ; j<firmPtr->worker_count ; j++, workerPtr++ )
+						{
+							if( workerPtr->skill_level < minSkill )
+								minSkill = workerPtr->skill_level;
+						}
+
+						//------------------------------//
+
+						if( firmPtr->majority_race() == race_id )
+						{
+							if( skill.skill_level < minSkill+10 )
+								continue;
+						}
+						else //-- for different race, only assign if the skill is significantly higher than the existing ones --//
+						{
+							if( skill.skill_level < minSkill+30 )
+								continue;
+						}
 					}
-
-					//------------------------------//
-
-					if( firmPtr->majority_race() == race_id )
+					else
 					{
-						if( skill.skill_level < minSkill+10 )
-							continue;
-					}
-					else //-- for different race, only assign if the skill is significantly higher than the existing ones --//
-					{
-						if( skill.skill_level < minSkill+30 )
-							continue;
+						//---- get the lowest max hit points worker of the camp -----//
+
+						Worker* workerPtr = firmPtr->worker_array;
+						short minMaxHitPoints = 1000;
+						short minMaxHitPointsOtherRace = 1000;
+						bool hasOtherRace = false;
+
+						for (int j = 0; j < firmPtr->worker_count; j++, workerPtr++)
+						{
+							if (workerPtr->max_hit_points() < minMaxHitPoints)
+								minMaxHitPoints = workerPtr->max_hit_points();
+
+							if (workerPtr->race_id != firmPtr->majority_race())
+							{
+								hasOtherRace = true;
+								if (workerPtr->max_hit_points() < minMaxHitPointsOtherRace)
+									minMaxHitPointsOtherRace = workerPtr->max_hit_points();
+							}
+						}
+
+						if (firmPtr->majority_race() == race_id)
+						{
+							if (!hasOtherRace && (max_hit_points < minMaxHitPoints + 10))
+								continue;
+						}
+						else
+						{
+							if (hasOtherRace && (max_hit_points < minMaxHitPointsOtherRace + 10))
+								continue;
+						}
 					}
 				}
 				else
@@ -671,7 +724,39 @@ int Unit::think_normal_human_action()
 
 		if( bestFirm )
 		{
+			if (bestFirm->firm_id == FIRM_CAMP && misc.points_distance(curXLoc, curYLoc, bestFirm->loc_x1, bestFirm->loc_y1) < 5)
+			{
+				short minMaxHitPointsOtherRace = 1000;
+				int bestWorkerId = -1;
+				Worker* workerPtr = bestFirm->worker_array;
+
+				for (int j = 0; j < bestFirm->worker_count; j++, workerPtr++)
+				{
+					if (workerPtr->race_id != race_id)
+					{
+						if (workerPtr->max_hit_points() < minMaxHitPointsOtherRace)
+						{
+							minMaxHitPointsOtherRace = workerPtr->max_hit_points();
+							bestWorkerId = j + 1;
+						}
+					}
+				}
+
+				if (bestWorkerId != -1)
+				{
+					bestFirm->mobilize_worker(bestWorkerId, COMMAND_AI);
+				}
+			}
 			assign(bestFirm->loc_x1, bestFirm->loc_y1);
+			if (bestFirm->firm_id == FIRM_CAMP)
+			{
+				FirmCamp* firmCamp = (FirmCamp*)bestFirm;
+				if (firmCamp->coming_unit_count < MAX_WORKER)
+				{
+					firmCamp->coming_unit_array[firmCamp->coming_unit_count] = sprite_recno;
+					firmCamp->coming_unit_count++;
+				}
+			}
 			return 1;
 		}
 	}
@@ -727,8 +812,12 @@ int Unit::think_normal_human_action()
 
 	if( bestTown )
 	{
-		assign(bestTown->loc_x1, bestTown->loc_y1);
-		return 1;
+		//DieselMachine TODO do not settle skilled soldiers
+		if (max_hit_points < 50)
+		{
+			assign(bestTown->loc_x1, bestTown->loc_y1);
+			return 1;
+		}
 	}
 
 	//----- if we don't have any existing towns in this region ----//
@@ -837,7 +926,6 @@ int Unit::think_assign_weapon_to_camp()
 //
 int Unit::think_build_camp()
 {
-	//DieselMachine
 	return 0;
 
 	//---- select a town to build the camp ---//
@@ -905,6 +993,7 @@ int Unit::think_reward()
 
 	//----- otherwise only reward soldiers and generals ------//
 
+	//DieselMachine TODO do not reward generals that are not is the camps
 	else if( skill.skill_id == SKILL_LEADING )
 	{
 		//----- calculate the needed loyalty --------//
@@ -1027,7 +1116,7 @@ int Unit::think_king_flee()
 		//
 		//------------------------------------------//
 
-		Firm *firmCamp, *bestCamp=NULL;
+		FirmCamp *firmCamp, *bestCamp=NULL;
 		int	curRating, bestRating=0;
 		int	curXLoc = next_x_loc(), curYLoc = next_y_loc();
 		int	curRegionId = world.get_region_id( curXLoc, curYLoc );
@@ -1057,11 +1146,16 @@ int Unit::think_king_flee()
 		}
 		else if( home_camp_firm_recno )	// if there is a home for the king
 		{
-			bestCamp = firm_array[home_camp_firm_recno];
+			bestCamp = (FirmCamp*)firm_array[home_camp_firm_recno];
+		}
+
+		//--- we have separate logic for choosing generals of capturing camps ---//
+		if (bestCamp && bestCamp->linkedToIndependentVillage())
+		{
+			bestCamp = NULL;
 		}
 
 		//------------------------------------//
-
 		if( bestCamp )
 		{
 			if( config.ai_aggressiveness > OPTION_LOW )
@@ -1109,7 +1203,7 @@ int Unit::think_general_flee()
 		//
 		//------------------------------------------//
 
-		Firm *firmCamp, *bestCamp=NULL;
+		FirmCamp *firmCamp, *bestCamp=NULL;
 		int	curRating, bestRating=0;
 		int	curXLoc = next_x_loc(), curYLoc = next_y_loc();
 		int	curRegionId = world.get_region_id( curXLoc, curYLoc );
@@ -1136,7 +1230,13 @@ int Unit::think_general_flee()
 		}
 		else if( home_camp_firm_recno )	// if there is a home for the general
 		{
-			bestCamp = firm_array[home_camp_firm_recno];
+			bestCamp = (FirmCamp*)firm_array[home_camp_firm_recno];
+		}
+
+		//--- we have separate logic for choosing generals of capturing camps ---//
+		if (bestCamp && bestCamp->linkedToIndependentVillage())
+		{
+			bestCamp = NULL;
 		}
 
 		//------------------------------------//
@@ -1256,12 +1356,12 @@ int Unit::ai_settle_new_town()
 //
 int Unit::ai_handle_seek_path_fail()
 {
-	if( seek_path_fail_count < 5 )		// wait unit it has failed many times
+	if (seek_path_fail_count < 100)		// wait unit it has failed many times
 		return 0;
 
 	//----- try to move to a new location -----//
 
-	if( seek_path_fail_count==5 )
+	if (seek_path_fail_count == 100)
 	{
 		stop2();		// stop the unit and think for new action
 		return 0;
@@ -1271,7 +1371,9 @@ int Unit::ai_handle_seek_path_fail()
 
 	int resignFlag = 0;
 
-	if( rank_id == RANK_SOLDIER && !leader_unit_recno )
+	if (seek_path_fail_count >= 120)
+		resignFlag = 1;
+	/*if( rank_id == RANK_SOLDIER && !leader_unit_recno )
 	{
 		if( seek_path_fail_count>=7 )
 			resignFlag = 1;
@@ -1280,10 +1382,11 @@ int Unit::ai_handle_seek_path_fail()
 	{
 		if( seek_path_fail_count >= 7+skill.skill_level/10 )
 			resignFlag = 1;
-	}
+	}*/
 
 	if( resignFlag && is_visible() )
 	{
+		//printf("ai_handle_seek_path_fail resign\n");
 		resign(COMMAND_AI);
 		return 1;
 	}

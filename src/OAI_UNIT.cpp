@@ -447,7 +447,7 @@ int Nation::train_unit(int skillId, int raceId, short destX, short destY, int& t
 //
 int Nation::recruit_jobless_worker(Firm* destFirmPtr, int preferedRaceId)
 {
-	#define MIN_AI_TOWN_POP		8
+	#define MIN_AI_TOWN_POP		16
 
 	int needSpecificRace, raceId;		// the race of the needed unit
 
@@ -497,6 +497,16 @@ int Nation::recruit_jobless_worker(Firm* destFirmPtr, int preferedRaceId)
 			continue;
 
 		if( townPtr->region_id != destFirmPtr->region_id )
+			continue;
+
+		//DieselMachine TODO this code is duplicated with FirmCamp::ai_recruit
+		//First count how many soldiers are there in the linked forts. Do not recruit too many
+		//We should have 4-8 soldiers for every 20 village population
+		double townSoldiersCount = townPtr->linked_camp_soldiers_count();
+		double prefRecruiting = 0.0;
+		if (yearly_food_change() > 0)
+			prefRecruiting = (double)pref_military_development + (100.0 - (double)pref_inc_pop_by_growth);
+		if (townPtr->population < MAX_TOWN_POPULATION && townSoldiersCount > townPtr->population * (4.0 + 4.0 * prefRecruiting / 200.0) / 20.0)
 			continue;
 
 		//--- get the distance beteween town & the destination firm ---//

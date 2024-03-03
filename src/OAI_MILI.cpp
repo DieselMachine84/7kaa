@@ -30,9 +30,9 @@
 
 void Nation::think_military()
 {
-	//DieselMachine TODO camps for soldiers are built at Town::think_build_camp()
-	//DieselMachine TODO maybe we should build camps for war machines but not for soldiers here
-	return;
+	//Do not think about military expanding too early because we can move our first town
+	if (info.game_date < info.game_start_date + 180)
+		return;
 
 	//---- don't build new camp if we our food consumption > production ----//
 
