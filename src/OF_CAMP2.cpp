@@ -284,7 +284,26 @@ void FirmCamp::ai_attack_town_defender(Unit* attackerUnit)
 //--------- Begin of function FirmCamp::think_close ---------//
 bool FirmCamp::think_close()
 {
-	if (linked_town_count == 0)
+	Nation* ownNation = nation_array[nation_recno];
+	bool shouldClose = true;
+	for (int i = 0; i < linked_town_count; i++)
+	{
+		Town* townPtr = town_array[linked_town_array[i]];
+		if (townPtr->nation_recno == 0 || townPtr->nation_recno == nation_recno)
+		{
+			shouldClose = false;
+			break;
+		}
+
+		NationRelation* nationRelation = ownNation->get_relation(townPtr->nation_recno);
+		if (nationRelation->status < NATION_NEUTRAL)
+		{
+			shouldClose = false;
+			break;
+		}
+	}
+
+	if (shouldClose)
 	{
 		patrol();
 		ai_del_firm();
@@ -776,7 +795,7 @@ void FirmCamp::think_capture()
 				return;
 			}
 		}
-		else
+		/*else
 		{
 			//--- don't attack if the target nation's military rating is higher than ours ---//
 
@@ -785,7 +804,7 @@ void FirmCamp::think_capture()
 			{
 				return;
 			}
-		}
+		}*/
 	}
 
 	bool hasLinkedEnemyCamps = false;
@@ -931,7 +950,7 @@ int FirmCamp::ai_capture_independent_town(Town* targetTown, int defenseCombatLev
 
 	//---------- attack the target town now ----------//
 
-	if( nation_array[nation_recno]->ai_attack_target(targetTown->loc_x1, targetTown->loc_y1, defenseCombatLevel, 0, 0, 0, firm_recno) )
+	if( nation_array[nation_recno]->ai_attack_target(targetTown->loc_x1, targetTown->loc_y1, defenseCombatLevel, 0, 0, firm_recno) )
 		return 1;
 
 	return 0;
@@ -1125,7 +1144,7 @@ int FirmCamp::ai_capture_enemy_town(Town* targetTown, int defenseCombatLevel)
 	}
 
 	return nation_array[nation_recno]->ai_attack_target(targetTown->loc_x1, targetTown->loc_y1,
-			 defenseCombatLevel, 0, 0, 0, firm_recno, useAllCamp );
+			 defenseCombatLevel, 0, 0, firm_recno, useAllCamp );
 }
 //--------- End of function FirmCamp::ai_capture_enemy_town --------//
 
@@ -1307,42 +1326,6 @@ int FirmCamp::think_use_cash_to_capture()
 	return 1;
 }
 //--------- End of function FirmCamp::think_use_cash_to_capture -------//
-
-
-//------- Begin of function FirmCamp::think_linked_town_change_nation ------//
-//
-// This function is called by Town::set_nation() when a town linked
-// to this firm has changed nation.
-//
-// <int> linkedTownRecno - the recno of the town that has changed nation.
-// <int> oldNationRecno  - the old nation recno of the town
-// <int> newNationRecno  - the new nation recno of the town
-//
-void FirmCamp::think_linked_town_change_nation(int linkedTownRecno, int oldNationRecno, int newNationRecno)
-{
-	//-----------------------------------------------//
-	//
-	// If we are trying to capture an independent town and our
-	// enemies have managed to capture it first.
-	//
-	//-----------------------------------------------//
-
-	Nation* ownNation = nation_array[nation_recno];
-
-	if( oldNationRecno==0 && newNationRecno>0 && newNationRecno != nation_recno  )
-	{
-		Town* townPtr = town_array[linkedTownRecno];
-
-		//--- if the town does not have any protection, then don't remove this camp ---//
-
-		if( townPtr->protection_available()==0 )
-			return;
-
-		should_close_flag = 1;
-		ownNation->firm_should_close_array[firm_id-1]++;
-	}
-}
-//-------- End of function FirmCamp::think_linked_town_change_nation ------//
 
 
 //------- Begin of function FirmCamp::think_attack_nearby_enemy -------//
@@ -1772,7 +1755,7 @@ void FirmCamp::think_optimize_soldiers_race()
 //-------- End of function FirmCamp::optimize_soldiers_race ---------//
 
 
-//-------- Begin of function FirmCamp::optimize_soldiers_race ---------//
+//-------- Begin of function FirmCamp::linkedToIndependentVillage ---------//
 bool FirmCamp::linkedToIndependentVillage()
 {
 	for (int i = 0; i < linked_town_count; i++)
@@ -1785,4 +1768,4 @@ bool FirmCamp::linkedToIndependentVillage()
 	}
 	return false;
 }
-//-------- End of function FirmCamp::optimize_soldiers_race ---------//
+//-------- End of function FirmCamp::linkedToIndependentVillage ---------//

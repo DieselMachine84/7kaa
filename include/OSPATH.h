@@ -82,8 +82,8 @@ enum	{	SEARCH_SUB_MODE_NORMAL=0,
 
 //----------- Define constants -----------//
 
-#define MAX_BACKGROUND_NODE				2400		// the total no. of nodes can be used at a time
-#define VALID_BACKGROUND_SEARCH_NODE	1600		// the search is considered unsuccessful if the node used > this value
+#define MAX_BACKGROUND_NODE				24000		// the total no. of nodes can be used at a time
+#define VALID_BACKGROUND_SEARCH_NODE	16000		// the search is considered unsuccessful if the node used > this value
 #define MIN_BACKGROUND_NODE_USED_UP		400		// don't do any new search if the current available nodes is < this value
 
 #define MAX_CHILD_NODE    8		// one for each direction

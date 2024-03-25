@@ -414,7 +414,7 @@ void Town::think_collect_tax()
 
 	int yearProfit = (int) nation_array[nation_recno]->profit_365days();
 
-	int minLoyalty = 50 + 30 * nation_array[nation_recno]->pref_loyalty_concern / 100;
+	int minLoyalty = 55 + 30 * nation_array[nation_recno]->pref_loyalty_concern / 100;
 
 	if( yearProfit < 0 )								// we are losing money now
 		minLoyalty -= (-yearProfit) / 100;		// more aggressive in collecting tax if we are losing a lot of money
@@ -641,7 +641,7 @@ int Town::protection_needed()
 			protectionNeeded += (int) firmPtr->productivity*2;
 
 			if( firmPtr->firm_id == FIRM_MINE )		// more protection for mines
-				protectionNeeded += 200;
+				protectionNeeded += 600;
 		}
 	}
 
@@ -675,11 +675,8 @@ int Town::protection_available()
 			for (int townIndex = 0; townIndex < firmPtr->linked_town_count; townIndex++)
 			{
 				Town* firmTownPtr = town_array[firmPtr->linked_town_array[townIndex]];
-
-				if (firmTownPtr->nation_recno != nation_recno)
-					continue;
-
-				linkedTownsCount++;
+				if (firmTownPtr->nation_recno == nation_recno)
+					linkedTownsCount++;
 			}
 			int combatLevel = ((FirmCamp*)firmPtr)->total_combat_level();
 			if (linkedTownsCount > 1)
@@ -691,6 +688,132 @@ int Town::protection_available()
 	return protectionLevel;
 }
 //---------- End of function Town::protection_available ------//
+
+
+//-------- Begin of function Town::add_protection_camps ------//
+void Town::add_protection_camps(std::vector<short>& protectionCamps, bool minimumProtection)
+{
+	short majorRaceCampRecno = 0;
+	std::vector<short> thisTownProtectionCamps;
+	Nation* ownNation = nation_array[nation_recno];
+
+	//For protection we leave camp with the king, one camp with the general of the major race,
+	//camps that captures other villages, camps with injured generals, camps with injured and weak soldiers
+	for (int i = 0; i < linked_firm_count; i++)
+	{
+		short firmRecno = linked_firm_array[i];
+		Firm* firmPtr = firm_array[firmRecno];
+
+		if (firmPtr->nation_recno != nation_recno)
+			continue;
+
+		if (firmPtr->firm_id != FIRM_CAMP)
+			continue;
+
+		//DieselMachine TODO if there is a battle going on, all linked camps should be protection camps
+		FirmCamp* firmCamp = (FirmCamp*)firmPtr;
+		if (firmCamp->overseer_recno == 0 || firmCamp->worker_count == 0 || firmCamp->patrol_unit_count > 0)
+			continue;
+
+		if (firmCamp->overseer_recno == ownNation->king_unit_recno)
+		{
+			thisTownProtectionCamps.push_back(firmRecno);
+		}
+
+		Unit* overseer = unit_array[firmCamp->overseer_recno];
+		if (majorRaceCampRecno == 0 && overseer->race_id == majority_race())
+		{
+			majorRaceCampRecno = firmRecno;
+			thisTownProtectionCamps.push_back(firmRecno);
+		}
+
+		if (!minimumProtection)
+		{
+			if ((overseer->hit_points < overseer->max_hit_points) && (overseer->hit_points < 100 - ownNation->pref_military_courage / 2))
+			{
+				thisTownProtectionCamps.push_back(firmRecno);
+			}
+
+			int lowHitPointsSoldiersCount = 0;
+			Worker* workerPtr = firmCamp->worker_array;
+			for (int j = 0; j < firmCamp->worker_count; j++, workerPtr++)
+			{
+				if (workerPtr->hit_points < 50.0)
+				{
+					lowHitPointsSoldiersCount++;
+				}
+			}
+			if (lowHitPointsSoldiersCount > 2 + ownNation->pref_military_courage / 25)	//from 2 to 6
+			{
+				thisTownProtectionCamps.push_back(firmRecno);
+			}
+		}
+	}
+
+	//Zero duplicates
+	for (int i = 0; i < thisTownProtectionCamps.size(); i++)
+	{
+		for (int j = i + 1; j < thisTownProtectionCamps.size(); j++)
+		{
+			if (thisTownProtectionCamps[j] == thisTownProtectionCamps[i])
+			{
+				thisTownProtectionCamps[j] = 0;
+			}
+		}
+	}
+
+	int totalCombatLevel = 0;
+	for (int i = 0; i < thisTownProtectionCamps.size(); i++)
+	{
+		if (thisTownProtectionCamps[i] != 0)
+		{
+			FirmCamp* firmCamp = (FirmCamp*)firm_array[thisTownProtectionCamps[i]];
+			totalCombatLevel += firmCamp->total_combat_level();
+		}
+	}
+
+	int neededProtection = protection_needed();
+	if (totalCombatLevel < neededProtection)
+	{
+		for (int i = 0; i < linked_firm_count; i++)
+		{
+			short firmRecno = linked_firm_array[i];
+			bool alreadyAdded = false;
+			for (int j = 0; j < thisTownProtectionCamps.size(); j++)
+			{
+				if (firmRecno == thisTownProtectionCamps[j])
+				{
+					alreadyAdded = true;
+					break;
+				}
+			}
+
+			if (alreadyAdded)
+				continue;
+
+			Firm* firmPtr = firm_array[firmRecno];
+
+			if (firmPtr->nation_recno != nation_recno)
+				continue;
+
+			if (firmPtr->firm_id != FIRM_CAMP)
+				continue;
+
+			FirmCamp* firmCamp = (FirmCamp*)firmPtr;
+			totalCombatLevel += firmCamp->total_combat_level();
+			thisTownProtectionCamps.push_back(firmRecno);
+			if (totalCombatLevel >= neededProtection)
+				break;
+		}
+	}
+
+	for (int i = 0; i < thisTownProtectionCamps.size(); i++)
+	{
+		if (thisTownProtectionCamps[i] != 0)
+			protectionCamps.push_back(thisTownProtectionCamps[i]);
+	}
+}
+//-------- End of function Town::add_protection_camps ------//
 
 
 //-------- Begin of function Town::think_build_market ------//
@@ -827,7 +950,7 @@ int Town::think_build_camp()
 	int protectionNeeded = protection_needed();
 	Nation* nationPtr = nation_array[nation_recno];
 	//Protect 1.5 - 2.5 times more than needed depending on the military development
-	if (nationPtr->yearly_food_change() > 0)
+	if (nationPtr->ai_has_enough_food() > 0)
 		protectionNeeded = protectionNeeded * (150 + nationPtr->pref_military_development) / 100;
 
 	if (protectionAvailable >= protectionNeeded)

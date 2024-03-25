@@ -280,14 +280,11 @@ int Nation::think_destroy_raw_site_guard()
 
 		//--------- attack the enemy unit ---------//
 
-		int hasWar;
-		int enemyCombatLevel = mobile_defense_combat_level( sitePtr->map_x_loc,
-									  sitePtr->map_y_loc, unitPtr->nation_recno, 1, hasWar );
-
-		if( enemyCombatLevel == - 1 )		// a war is going on here, don't attack this target
+		if (is_battle(sitePtr->map_x_loc, sitePtr->map_y_loc) > 0)
 			continue;
 
-		if( ai_attack_target(sitePtr->map_x_loc, sitePtr->map_y_loc, enemyCombatLevel, 0, 0, 0, 0, 1) )		// 1-use all camps
+		int enemyCombatLevel = ai_evaluate_target_combat_level(sitePtr->map_x_loc, sitePtr->map_y_loc, unitPtr->nation_recno);
+		if( ai_attack_target(sitePtr->map_x_loc, sitePtr->map_y_loc, enemyCombatLevel, 0, 0, 0, 1) )		// 1-use all camps
 			return 1;
 	}
 

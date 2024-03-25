@@ -229,7 +229,7 @@ int Nation::should_use_cash_to_capture()
 {
 	//--- if we have plenty of cash, use cash to decrease the resistance of the villagers ---//
 
-	return military_rank_rating() < 50+pref_peacefulness/5 &&		// 50 to 70
+	return /*military_rank_rating() < 50+pref_peacefulness/5 &&		// 50 to 70*/
 			 ai_should_spend(pref_loyalty_concern/4);
 }
 //---------- End of function Nation::should_use_cash_to_capture ---------//

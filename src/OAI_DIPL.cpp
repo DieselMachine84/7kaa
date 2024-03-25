@@ -842,7 +842,7 @@ int Nation::think_demand_tribute_aid()
 
 			curRating = ourMilitary - nationPtr->military_rank_rating();
 
-			if( curRating < 0 )
+			if( curRating < -50 )
 				continue;
 
 			//----------------------------------------------//
@@ -870,6 +870,9 @@ int Nation::think_demand_tribute_aid()
 		}
 		else
 		{
+			if (cash > 3000 + 2000 * pref_cash_reserve / 100 || cash > nationPtr->cash)
+				continue;
+
 			if( cash >= fixedExpense )
 				continue;
 

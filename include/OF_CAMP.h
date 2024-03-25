@@ -166,7 +166,6 @@ private:
 	int 		ai_capture_enemy_town(Town* targetTown, int defenseCombatLevel);
 
 	int		think_use_cash_to_capture();
-	void 		think_linked_town_change_nation(int linkedTownRecno, int oldNationRecno, int newNationRecno);
 
 	int 		think_assign_better_commander();
 	int 		best_commander_race();

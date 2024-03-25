@@ -212,7 +212,7 @@ void Unit::process_ai()
 
 				if( !leader_unit_recno )		// only when the unit is not led by a commander
 				{
-					//DieselMachine TODO maybe not resign but find him a better place?
+					//DieselMachine TODO check with anti-spy and send to a camp
 					//resign(COMMAND_AI);
 				}
 				else
@@ -724,7 +724,8 @@ int Unit::think_normal_human_action()
 
 		if( bestFirm )
 		{
-			if (bestFirm->firm_id == FIRM_CAMP && misc.points_distance(curXLoc, curYLoc, bestFirm->loc_x1, bestFirm->loc_y1) < 5)
+			if (bestFirm->firm_id == FIRM_CAMP && bestFirm->worker_count == MAX_WORKER
+				&& misc.points_distance(curXLoc, curYLoc, bestFirm->loc_x1, bestFirm->loc_y1) < 5)
 			{
 				short minMaxHitPointsOtherRace = 1000;
 				int bestWorkerId = -1;
@@ -737,6 +738,20 @@ int Unit::think_normal_human_action()
 						if (workerPtr->max_hit_points() < minMaxHitPointsOtherRace)
 						{
 							minMaxHitPointsOtherRace = workerPtr->max_hit_points();
+							bestWorkerId = j + 1;
+						}
+					}
+				}
+
+				if (bestWorkerId == -1)
+				{
+					short minMaxHitPoints = 1000;
+					workerPtr = bestFirm->worker_array;
+					for (int j = 0; j < bestFirm->worker_count; j++, workerPtr++)
+					{
+						if (workerPtr->max_hit_points() < minMaxHitPoints)
+						{
+							minMaxHitPoints = workerPtr->max_hit_points();
 							bestWorkerId = j + 1;
 						}
 					}
@@ -1012,7 +1027,7 @@ int Unit::think_reward()
 		}
 
 		neededLoyalty = MAX( UNIT_BETRAY_LOYALTY+10, neededLoyalty );		// 10 points above the betray loyalty level to prevent betrayal
-		neededLoyalty = MIN( 100, neededLoyalty );
+		neededLoyalty = MIN( 90, neededLoyalty );
 	}
 	else
 	{
@@ -1093,7 +1108,7 @@ void Unit::ai_leader_being_attacked(int attackerUnitRecno)
 //
 int Unit::think_king_flee()
 {
-	if( force_move_flag && cur_action != SPRITE_IDLE )		// the king is already fleeing now
+	if( force_move_flag && cur_action != SPRITE_IDLE && cur_action != SPRITE_ATTACK )		// the king is already fleeing now
 		return 1;
 
 	//------- if the king is alone --------//
@@ -1133,6 +1148,9 @@ int Unit::think_king_flee()
 				if( firmCamp->overseer_recno && rank_id!=RANK_KING )		// if there is already a commander in this camp. However if this is the king, than ingore this
 					continue;
 
+				if( firmCamp->linkedToIndependentVillage() )
+					continue;
+
 				curRating = world.distance_rating( curXLoc, curYLoc,
 								 firmCamp->center_x, firmCamp->center_y );
 
@@ -1147,12 +1165,6 @@ int Unit::think_king_flee()
 		else if( home_camp_firm_recno )	// if there is a home for the king
 		{
 			bestCamp = (FirmCamp*)firm_array[home_camp_firm_recno];
-		}
-
-		//--- we have separate logic for choosing generals of capturing camps ---//
-		if (bestCamp && bestCamp->linkedToIndependentVillage())
-		{
-			bestCamp = NULL;
 		}
 
 		//------------------------------------//
@@ -1180,7 +1192,7 @@ int Unit::think_king_flee()
 
 int Unit::think_general_flee()
 {
-	if( force_move_flag && cur_action != SPRITE_IDLE )		// the general is already fleeing now
+	if( force_move_flag && cur_action != SPRITE_IDLE && cur_action != SPRITE_ATTACK )		// the general is already fleeing now
 		return 1;
 
 	//------- if the general is alone --------//
@@ -1217,6 +1229,9 @@ int Unit::think_general_flee()
 				if( firmCamp->region_id != curRegionId )
 					continue;
 
+				if( firmCamp->linkedToIndependentVillage() )
+					continue;
+
 				curRating = world.distance_rating( curXLoc, curYLoc,
 								 firmCamp->center_x, firmCamp->center_y );
 
@@ -1231,12 +1246,6 @@ int Unit::think_general_flee()
 		else if( home_camp_firm_recno )	// if there is a home for the general
 		{
 			bestCamp = (FirmCamp*)firm_array[home_camp_firm_recno];
-		}
-
-		//--- we have separate logic for choosing generals of capturing camps ---//
-		if (bestCamp && bestCamp->linkedToIndependentVillage())
-		{
-			bestCamp = NULL;
 		}
 
 		//------------------------------------//

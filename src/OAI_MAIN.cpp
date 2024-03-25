@@ -350,7 +350,7 @@ void Nation::process_on_going_action()
 	if (attack_camp_count > 0)
 	{
 		//DieselMachine TODO We should pass 1 if we are just moving to the point
-		ai_attack_target_execute(0, 0, false);
+		ai_attack_target_execute(false, 0);
 	}
 }
 //---------- End of function Nation::process_on_going_action --------//

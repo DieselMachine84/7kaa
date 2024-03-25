@@ -44,6 +44,8 @@
 #include <OTOWNRES.h>
 #endif
 
+#include <vector>
+
 //------- define constant --------//
 
 #define MAX_TOWN_GROWTH_POPULATION  60		// grow up to 60 persons in a town
@@ -347,6 +349,7 @@ public:
 
 	int	protection_needed();			// an index from 0 to 100 indicating the military protection needed for this town
 	int	protection_available();
+	void add_protection_camps(std::vector<short>& protectionCamps, bool minimumProtection);
 
 	int 	ai_build_neighbor_firm(int firmId, int firmRaceId=0);
 	int 	ai_settle_new(int raceId);

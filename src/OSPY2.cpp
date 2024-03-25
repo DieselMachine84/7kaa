@@ -115,20 +115,27 @@ void Spy::think_firm_spy()
 	if( firmPtr->nation_recno == true_nation_recno )		// anti-spy
 		return;
 
-	//-------- try to capturing the firm --------//
+	bool isHumanPlayer = false;
+	if (cloaked_nation_recno != 0)
+	{
+		Nation* cloackedNation = nation_array[cloaked_nation_recno];
+		isHumanPlayer = !cloackedNation->is_ai();
+	}
+	Nation* trueNation = nation_array[true_nation_recno];
+	if (isHumanPlayer || trueNation->get_relation_status(cloaked_nation_recno) != NATION_ALLIANCE)
+	{
+		//-------- try to capturing the firm --------//
+		if( capture_firm() )
+			return;
 
-	if( capture_firm() )
-		return;
+		//-------- think about bribing ---------//
+		if( think_bribe() )
+			return;
 
-	//-------- think about bribing ---------//
-
-	if( think_bribe() )
-		return;
-
-	//-------- think about assassinating ---------//
-
-	if( think_assassinate() )
-		return;
+		//-------- think about assassinating ---------//
+		if( think_assassinate() )
+			return;
+	}
 
 	//------ think about changing spy mode ----//
 
@@ -255,7 +262,7 @@ int Spy::think_reward()
 	int neededLoyalty = spy_skill * (100+ownNation->pref_loyalty_concern) / 100;
 
 	neededLoyalty = MAX( UNIT_BETRAY_LOYALTY+10, neededLoyalty );		// 10 points above the betray loyalty level to prevent betrayal
-	neededLoyalty = MIN( 100, neededLoyalty );
+	neededLoyalty = MIN( 90, neededLoyalty );
 
 	//------- if the loyalty is already high enough ------//
 

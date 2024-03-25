@@ -106,23 +106,6 @@ void Nation::think_capturing_enemy_town()
 	int isBattle = is_battle(targetTown->center_x, targetTown->center_y);
 	if (ai_capture_enemy_town_start_attack_date == 0)
 	{
-		//DieselMachine TODO maybe remove this code because similar check is in ai_attack_target_execute()
-		if (isBattle == 0)
-		{
-			//Check if enemy force has increased and we need to stop our attack
-			int ourCombatLevel = 0;
-			for (int i = 0; i < attack_camp_count; i++)
-			{
-				ourCombatLevel += attack_camp_array[i].combat_level;
-			}
-			int targetCombatLevel = ai_evaluate_target_combat_level(targetTown->center_x, targetTown->center_y, targetTown->nation_recno);
-			if (ourCombatLevel < targetCombatLevel * (125+pref_force_projection/4) / 100)		// 125% to 150%
-			{
-				//Stop our attack
-				ai_capture_enemy_town_recno = 0;
-			}
-		}
-
 		if( isBattle==2 )		// we are at war with the nation now
 			ai_capture_enemy_town_start_attack_date = info.game_date;
 
@@ -148,7 +131,7 @@ void Nation::think_capturing_enemy_town()
 		int targetCombatLevel = ai_evaluate_target_combat_level(targetTown->center_x, targetTown->center_y, targetTown->nation_recno);
 		if( targetCombatLevel > 0 && isBattle==2 )		// we are still in war with the enemy
 		{
-			ai_attack_target(targetTown->center_x, targetTown->center_y, targetCombatLevel, 0, 1 );      // 1-just all move there and wait for the units to attack the enemies automatically
+			ai_attack_target(targetTown->center_x, targetTown->center_y, targetCombatLevel, 1 );      // 1-just all move there and wait for the units to attack the enemies automatically
 			return;
 		}
 	}
@@ -239,14 +222,14 @@ int Nation::attack_enemy_town_defense(Town* targetTown, int useAllCamp)
 		if( targetNation->is_at_war() )		// use all camps force if the nation is at war
 			useAllCamp = 1;
 
-		return ai_attack_target(bestTargetFirm->loc_x1, bestTargetFirm->loc_y1, targetCombatLevel, 0, 0, 0, 0, useAllCamp);
+		return ai_attack_target(bestTargetFirm->loc_x1, bestTargetFirm->loc_y1, targetCombatLevel, 0, 0, 0, useAllCamp);
 	}
 	else
 	{
 		//--- if there are any mobile defense force around the town ----//
 
-		if( ai_evaluate_target_combat_level(targetTown->center_x, targetTown->center_y, targetTown->nation_recno) > 0 )
-			return ai_attack_target(targetTown->center_x, targetTown->center_y, targetCombatLevel, 0, 1 );      // 1-just all move there and wait for the units to attack the enemies automatically
+		if( targetCombatLevel > 0 )
+			return ai_attack_target(targetTown->center_x, targetTown->center_y, targetCombatLevel, 1 );      // 1-just all move there and wait for the units to attack the enemies automatically
 	}
 
 	return -1;
@@ -322,11 +305,11 @@ Town* Nation::think_capture_enemy_town_target(Town* capturerTown)
 
 		//--- if the enemy is very powerful overall, don't attack it yet ---//
 
-		if( nation_array[targetTown->nation_recno]->military_rank_rating() >
+		/*if( nation_array[targetTown->nation_recno]->military_rank_rating() >
 			 military_rank_rating() * (80+pref_military_courage/2) / 100 )
 		{
 			continue;
-		}
+		}*/
 
 		//------ only attack if we have enough money to support the war ----//
 
@@ -354,7 +337,7 @@ Town* Nation::think_capture_enemy_town_target(Town* capturerTown)
 
 		//----- the power of between the nation also affect the rating ----//
 
-		curRating += 2 * (military_rank_rating() - nation_array[targetTown->nation_recno]->military_rank_rating());
+		//curRating += 2 * (military_rank_rating() - nation_array[targetTown->nation_recno]->military_rank_rating());
 
 		//-- AI Aggressive is set above Low, than the AI will try to capture the player's town first ---//
 
@@ -422,166 +405,6 @@ Town* Nation::think_capture_enemy_town_target(Town* capturerTown)
 //-------- End of function Nation::think_capture_enemy_town_target ------//
 
 
-//--------- Begin of function Nation::enemy_firm_combat_level --------//
-//
-// <Firm*> targetFirm  - the target firm
-// <int>   returnIfWar - return -1 if there is any war around the town
-// <int&>  hasWar      - a reference var for returning whether there is any war
-//
-// return: <int> the enemy's total defense combat level minus the player's
-//					  combat level.
-///		        return -1 if there is war and returnIfWar is 1
-//
-int Nation::enemy_firm_combat_level(Firm* targetFirm, int returnIfWar, int& hasWar)
-{
-	int enemyCombatLevel = mobile_defense_combat_level(targetFirm->center_x, targetFirm->center_y, targetFirm->nation_recno, returnIfWar, hasWar);		//0-don't return even there are wars around the town
-
-	if( enemyCombatLevel < 0 )		// there is a war going on
-		return -1;
-
-	//--- calculate the combat level of enemy camps linked to this towns that are linked to this mine ---//
-
-	Town* linkedTown;
-	Firm* firmPtr;
-	int   targetNationRecno = targetFirm->nation_recno;
-
-	//---- scan towns linked to this mine -----//
-
-	for( int i=targetFirm->linked_town_count-1 ; i>=0 ; i-- )
-	{
-		linkedTown = town_array[ targetFirm->linked_town_array[i] ];
-
-		if( linkedTown->nation_recno != targetNationRecno )
-			continue;
-
-		//------ scan firms linked to this town -------//
-
-		for( int j=linkedTown->linked_firm_count-1 ; j>=0 ; j-- )
-		{
-			firmPtr = firm_array[ linkedTown->linked_firm_array[j] ];
-
-			if( firmPtr->nation_recno == targetNationRecno &&
-				 firmPtr->firm_id == FIRM_CAMP )
-			{
-				enemyCombatLevel += ((FirmCamp*)firmPtr)->total_combat_level();
-			}
-		}
-	}
-
-	return enemyCombatLevel;
-}
-//-------- End of function Nation::enemy_firm_combat_level ------//
-
-
-//------- Begin of function Nation::mobile_defense_combat_level ------//
-//
-// Take into account of the mobile units around this target location
-// when considering attacking it.
-//
-// <int> targetXLoc, targetYLoc - the target location
-// <int> targetNationRecno      - nation recno of the target
-// <int> returnIfWar	 		  	  - whether return -1 if there is war
-//											 around the given area.
-// <int&> hasWar					  - a var for returning whether there is war
-//											 around the given area.
-//											 1 - if there is war
-//											 2 - if our nation is involved in the war
-//
-// return : >= 0 the defense rating of this location, the rating can be < 0,
-//               if we have our own units there.
-//
-//          -1  don't attack this town because a battle is already
-//              going on.
-//
-int Nation::mobile_defense_combat_level(int targetXLoc, int targetYLoc, int targetNationRecno, int returnIfWar, int& hasWar)
-{
-	//--- the scanning distance is determined by the AI aggressiveness setting ---//
-
-	int scanRangeX = 5 + config.ai_aggressiveness * 2;
-	int scanRangeY = scanRangeX;
-
-	int xLoc1 = targetXLoc - scanRangeX;
-	int yLoc1 = targetYLoc - scanRangeY;
-	int xLoc2 = targetXLoc + scanRangeX;
-	int yLoc2 = targetYLoc + scanRangeY;
-
-	xLoc1 = MAX( xLoc1, 0 );
-	yLoc1 = MAX( yLoc1, 0 );
-	xLoc2 = MIN( xLoc2, MAX_WORLD_X_LOC-1 );
-	yLoc2 = MIN( yLoc2, MAX_WORLD_Y_LOC-1 );
-
-	//------------------------------------------//
-
-	int totalCombatLevel = 0;    // the higher the rating, the easier we can attack the target town.
-	int   xLoc, yLoc;
-	Unit* unitPtr;
-	Location* locPtr;
-
-	hasWar = 0;
-
-	for( yLoc=yLoc1 ; yLoc<=yLoc2 ; yLoc++ )
-	{
-		locPtr = world.get_loc(xLoc1, yLoc);
-
-		for( xLoc=xLoc1 ; xLoc<=xLoc2 ; xLoc++, locPtr++ )
-		{
-			if( !locPtr->has_unit(UNIT_LAND) )
-				continue;
-
-			unitPtr = unit_array[ locPtr->unit_recno(UNIT_LAND) ];
-
-			//--------------------------------------------------//
-			// If there is already a battle going on in this town,
-			// do not attack this town.
-			//--------------------------------------------------//
-
-			if( unitPtr->cur_action == SPRITE_ATTACK )
-			{
-				if( returnIfWar )
-					return -1;
-				else
-				{
-					if( unitPtr->nation_recno == nation_recno )
-					{
-						hasWar = 2;
-					}
-					else
-					{
-						if (hasWar != 2)
-						{
-							hasWar = 1;
-						}
-					}
-				}
-			}
-
-			//---- if this unit is guarding the town -----//
-
-			if( unitPtr->nation_recno == targetNationRecno )
-			{
-				totalCombatLevel += unitPtr->unit_power();
-			}
-
-			//------- if this is our own unit ------//
-
-			else if( unitPtr->nation_recno == nation_recno )
-			{
-				if( unitPtr->cur_action == SPRITE_ATTACK ||		// only units that are currently attacking or idle are counted, moving units may just be passing by
-					 unitPtr->cur_action == SPRITE_IDLE )
-				{
-					totalCombatLevel -= unitPtr->unit_power();
-				}
-			}
-		}
-	}
-
-	if( totalCombatLevel == -1 )		// -1 is reserved for returning don't attack
-		return 0;
-	else
-		return totalCombatLevel;
-}
-//-------- End of function Nation::mobile_defense_combat_level ------//
-
 //-------- Begin of function Nation::is_battle ------//
 // Returns 0 is there is no battle
 //         1 - if there is battle
@@ -634,3 +457,210 @@ int Nation::is_battle(int targetXLoc, int targetYLoc)
 	return isBattle;
 }
 //-------- End of function Nation::is_battle ------//
+
+
+//--------- Begin of function Nation::enemy_town_combat_level --------//
+//
+// <Town*> targetTown  - the target town
+// <int>   returnIfWar - return -1 if there is any war around the town
+// <int&>  hasWar      - a reference var for returning whether there is any war
+//
+// return: <int> the enemy's total defense combat level minus the player's
+//					  combat level.
+///		        return -1 if there is war and returnIfWar is 1
+//
+/*int Nation::enemy_town_combat_level(Town* targetTown, int returnIfWar, int& hasWar)
+{
+	int enemyCombatLevel = mobile_defense_combat_level(targetTown->center_x, targetTown->center_y, targetTown->nation_recno, returnIfWar, hasWar);		//0-don't return even there are wars around the town
+
+	if( enemyCombatLevel < 0 )		// there is a war going on
+		return -1;
+
+	//---- calculate the attack rating of this target town ----//
+
+//	enemyCombatLevel += targetTown->jobless_population * 5;	//**BUGHERE
+
+	//--- calculate the combat level of enemy camps linked to this town ---//
+
+	Firm* firmPtr;
+
+	for( int i=targetTown->linked_firm_count-1 ; i>=0 ; i-- )
+	{
+		firmPtr = firm_array[ targetTown->linked_firm_array[i] ];
+
+		if( firmPtr->nation_recno == targetTown->nation_recno &&
+			 firmPtr->firm_id == FIRM_CAMP )
+		{
+			enemyCombatLevel += ((FirmCamp*)firmPtr)->total_combat_level();
+		}
+	}*/
+/*
+	//----- add this and neighbor town's needed combat level ----//
+
+	Town* townPtr;
+
+	for( i=targetTown->linked_town_count-1 ; i>=0 ; i-- )
+	{
+		townPtr = town_array[ targetTown->linked_town_array[i] ];
+
+		if( townPtr->nation_recno == targetTown->nation_recno )	//**BUGHERE
+			enemyCombatLevel += townPtr->jobless_population * 5;
+	}
+*/
+	//return enemyCombatLevel;
+//}
+//-------- End of function Nation::enemy_town_combat_level ------//
+
+
+//--------- Begin of function Nation::enemy_firm_combat_level --------//
+//
+// <Firm*> targetFirm  - the target firm
+// <int>   returnIfWar - return -1 if there is any war around the town
+// <int&>  hasWar      - a reference var for returning whether there is any war
+//
+// return: <int> the enemy's total defense combat level minus the player's
+//					  combat level.
+///		        return -1 if there is war and returnIfWar is 1
+//
+/*int Nation::enemy_firm_combat_level(Firm* targetFirm, int returnIfWar, int& hasWar)
+{
+	int enemyCombatLevel = mobile_defense_combat_level(targetFirm->center_x, targetFirm->center_y, targetFirm->nation_recno, returnIfWar, hasWar);		//0-don't return even there are wars around the town
+
+	if( enemyCombatLevel < 0 )		// there is a war going on
+		return -1;
+
+	//--- calculate the combat level of enemy camps linked to this towns that are linked to this mine ---//
+
+	Town* linkedTown;
+	Firm* firmPtr;
+	int   targetNationRecno = targetFirm->nation_recno;
+
+	//---- scan towns linked to this mine -----//
+
+	for( int i=targetFirm->linked_town_count-1 ; i>=0 ; i-- )
+	{
+		linkedTown = town_array[ targetFirm->linked_town_array[i] ];
+
+		if( linkedTown->nation_recno != targetNationRecno )
+			continue;
+
+		//------ scan firms linked to this town -------//
+
+		for( int j=linkedTown->linked_firm_count-1 ; j>=0 ; j-- )
+		{
+			firmPtr = firm_array[ linkedTown->linked_firm_array[j] ];
+
+			if( firmPtr->nation_recno == targetNationRecno &&
+				 firmPtr->firm_id == FIRM_CAMP )
+			{
+				enemyCombatLevel += ((FirmCamp*)firmPtr)->total_combat_level();
+			}
+		}
+	}
+
+	return enemyCombatLevel;
+}*/
+//-------- End of function Nation::enemy_firm_combat_level ------//
+
+
+//------- Begin of function Nation::mobile_defense_combat_level ------//
+//
+// Take into account of the mobile units around this target location
+// when considering attacking it.
+//
+// <int> targetXLoc, targetYLoc - the target location
+// <int> targetNationRecno      - nation recno of the target
+// <int> returnIfWar	 		  	  - whether return -1 if there is war
+//											 around the given area.
+// <int&> hasWar					  - a var for returning whether there is war
+//											 around the given area.
+//											 1 - if there is war
+//											 2 - if our nation is involved in the war
+//
+// return : >= 0 the defense rating of this location, the rating can be < 0,
+//               if we have our own units there.
+//
+//          -1  don't attack this town because a battle is already
+//              going on.
+//
+/*int Nation::mobile_defense_combat_level(int targetXLoc, int targetYLoc, int targetNationRecno, int returnIfWar, int& hasWar)
+{
+	//--- the scanning distance is determined by the AI aggressiveness setting ---//
+
+	int scanRangeX = 5 + config.ai_aggressiveness * 2;
+	int scanRangeY = scanRangeX;
+
+	int xLoc1 = targetXLoc - scanRangeX;
+	int yLoc1 = targetYLoc - scanRangeY;
+	int xLoc2 = targetXLoc + scanRangeX;
+	int yLoc2 = targetYLoc + scanRangeY;
+
+	xLoc1 = MAX( xLoc1, 0 );
+	yLoc1 = MAX( yLoc1, 0 );
+	xLoc2 = MIN( xLoc2, MAX_WORLD_X_LOC-1 );
+	yLoc2 = MIN( yLoc2, MAX_WORLD_Y_LOC-1 );
+
+	//------------------------------------------//
+
+	float totalCombatLevel=(float)0;    // the higher the rating, the easier we can attack the target town.
+	int   xLoc, yLoc;
+	Unit* unitPtr;
+	Location* locPtr;
+
+	hasWar = 0;
+
+	for( yLoc=yLoc1 ; yLoc<=yLoc2 ; yLoc++ )
+	{
+		locPtr = world.get_loc(xLoc1, yLoc);
+
+		for( xLoc=xLoc1 ; xLoc<=xLoc2 ; xLoc++, locPtr++ )
+		{
+			if( !locPtr->has_unit(UNIT_LAND) )
+				continue;
+
+			unitPtr = unit_array[ locPtr->unit_recno(UNIT_LAND) ];
+
+			//--------------------------------------------------//
+			// If there is already a battle going on in this town,
+			// do not attack this town.
+			//--------------------------------------------------//
+
+			if( unitPtr->cur_action == SPRITE_ATTACK )
+			{
+				if( returnIfWar )
+					return -1;
+				else
+				{
+					if( unitPtr->nation_recno == nation_recno )
+						hasWar = 2;
+					else
+						hasWar = 1;
+				}
+			}
+
+			//---- if this unit is guarding the town -----//
+
+			if( unitPtr->nation_recno == targetNationRecno )
+			{
+				totalCombatLevel += unitPtr->unit_power();
+			}
+
+			//------- if this is our own unit ------//
+
+			else if( unitPtr->nation_recno == nation_recno )
+			{
+				if( unitPtr->cur_action == SPRITE_ATTACK ||		// only units that are currently attacking or idle are counted, moving units may just be passing by
+					 unitPtr->cur_action == SPRITE_IDLE )
+				{
+					totalCombatLevel -= unitPtr->unit_power();
+				}
+			}
+		}
+	}
+
+	if( totalCombatLevel == -1 )		// -1 is reserved for returning don't attack
+		return 0;
+	else
+		return (int) totalCombatLevel;
+}*/
+//-------- End of function Nation::mobile_defense_combat_level ------//
