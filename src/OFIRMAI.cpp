@@ -466,10 +466,6 @@ int Firm::think_capture()
 	if( i==0 )
 		return 0;
 
-	//------- do not capture firms of our ally --------//
-	if (nation_array[nation_recno]->is_ai() && nationPtr->get_relation_status(nation_recno) == NATION_ALLIANCE)
-		return 0;
-
 	//------- capture the firm --------//
 
 	capture_firm(i);
@@ -511,12 +507,28 @@ int Firm::think_capture()
 		int useAllCamp = nationPtr->pref_military_courage > 60 || misc.random(3)==0;
 
 		nationPtr->ai_attack_target( bestTarget->loc_x1, bestTarget->loc_y1,
-			((FirmCamp*)bestTarget)->total_combat_level(), 0, 0, 0, useAllCamp );
+			((FirmCamp*)bestTarget)->total_combat_level(), 0, 0, 0, 0, useAllCamp );
 	}
 
 	return 1;
 }
 //--------- End of function Firm::think_capture -----------//
+
+
+//------- Begin of function Firm::think_linked_town_change_nation ------//
+//
+// This function is called by Town::set_nation() when a town linked
+// to this firm has changed nation.
+//
+// <int> linkedTownRecno - the recno of the town that has changed nation.
+// <int> oldNationRecno  - the old nation recno of the town
+// <int> newNationRecno  - the new nation recno of the town
+//
+void Firm::think_linked_town_change_nation(int linkedTownRecno, int oldNationRecno, int newNationRecno)
+{
+
+}
+//-------- End of function Firm::think_linked_town_change_nation ------//
 
 
 //--------- Begin of function Firm::ai_firm_captured --------//

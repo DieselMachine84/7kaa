@@ -31,8 +31,7 @@
 //----------- Define constant ------------//
 
 enum { MAX_MONSTER_LEVEL = 9 };
-//DieselMachine
-enum { MAX_ACTIVE_MONSTER = 13 };		// No. of monster type in each game
+enum { MAX_ACTIVE_MONSTER = 3 };		// No. of monster type in each game
 
 //----------- Define constant ------------//
 

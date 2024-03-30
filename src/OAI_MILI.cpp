@@ -30,10 +30,6 @@
 
 void Nation::think_military()
 {
-	//Do not think about military expanding too early because we can move our first town
-	if (info.game_date < info.game_start_date + 180)
-		return;
-
 	//---- don't build new camp if we our food consumption > production ----//
 
 	if( yearly_food_change() < 0 )

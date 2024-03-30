@@ -825,7 +825,7 @@ int Unit::searching(int destXLoc, int destYLoc, int preserveAction, short search
 			 (seekResult==PATH_NODE_USED_UP &&    // if all the nodes have been used up and the number of nodes original available is >= VALID_BACKGROUND_SEARCH_NODE
 			  totalAvailableNode >= VALID_BACKGROUND_SEARCH_NODE) )
 		{
-			if( seek_path_fail_count < 125 )		// prevent numeric overflow
+			if( seek_path_fail_count < 100 )		// prevent numeric overflow
 				seek_path_fail_count++;
 		}
 		else

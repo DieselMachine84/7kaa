@@ -705,16 +705,15 @@ int Nation::find_best_firm_loc(short buildFirmId, short refXLoc, short refYLoc, 
 	refX2 -= firmLocWidth-1;			// do not scan beyond the border
 	refY2 -= firmLocHeight-1;
 
-	yLoc = refY1 + misc.random(refY2 - refY1 + 1);
-	xLoc = refX1 + misc.random(refX2 - refX1 + 1);
-
-	for (int yCounter = 0; yCounter < refY2 - refY1 + 1; yCounter++)
+	for( yLoc=refY1 ; yLoc<=refY2 ; yLoc++ )
 	{
-		for (int xCounter = 0; xCounter < refX2 - refX1 + 1; xCounter++)
+		for( xLoc=refX1 ; xLoc<=refX2 ; xLoc++ )
 		{
-			if( world.get_region_id(xLoc, yLoc) == buildRegionId &&
-				 world.can_build_firm(xLoc, yLoc, buildFirmId) )
+			if( world.get_region_id(xLoc, yLoc) != buildRegionId ||
+				 !world.can_build_firm(xLoc, yLoc, buildFirmId) )
 			{
+				continue;
+			}
 
 			//---- calculate the average weight of a firm area ----//
 
@@ -743,17 +742,7 @@ int Nation::find_best_firm_loc(short buildFirmId, short refXLoc, short refYLoc, 
 				resultXLoc = xLoc;
 				resultYLoc = yLoc;
 			}
-
-			}
-
-			xLoc++;
-			if (xLoc == refX2 + 1)
-				xLoc = refX1;
 		}
-
-		yLoc++;
-		if (yLoc == refY2 + 1)
-			yLoc = refY1;
 	}
 
 	//------ release the refective matrix -----//

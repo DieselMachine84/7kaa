@@ -379,6 +379,7 @@ public:
 	virtual void			ai_update_link_status();
 			  int 			think_hire_inn_unit();
 			  int				think_capture();
+	virtual void 			think_linked_town_change_nation(int linkedTownRecno, int oldNationRecno, int newNationRecno);
 			  void 			ai_firm_captured(int capturerNationRecno);
 
 	//-------------- multiplayer checking codes ---------------//

@@ -387,11 +387,6 @@ int Nation::consider_cease_war(int withNationRecno)
 	if( !ai_should_spend_war(withNation->military_rank_rating(), 1) )		// if we shouldn't spend any more on war, then return 1
 		return 1;
 
-	//------ if this is our biggest enemy do not cease fire -----//
-
-	if (config.ai_aggressiveness == OPTION_VERY_HIGH && withNation->overall_rank_rating() == 100)
-		return 0;
-
 	//------------------------------------------------//
 
 	int curRating = consider_alliance_rating(withNationRecno);
@@ -506,7 +501,7 @@ int Nation::should_consider_friendly(int withNationRecno)
 
 	//------- if this is a larger nation -------//
 
-	if( overall_rank_rating() > 10 )
+	if( overall_rank_rating() / 100 > 50 )
 	{
 		//--- big nations don't ally with their biggest opponents ---//
 
@@ -996,11 +991,12 @@ int Nation::consider_military_aid(TalkMsg* talkMsg)
 
 	//------- calculate the combat level of the target units there ------//
 
-	//int hasWar;
+	int hasWar;
 
-	int targetCombatLevel = ai_evaluate_target_combat_level(unitPtr->next_x_loc(), unitPtr->next_y_loc(), unitPtr->nation_recno);
+	int targetCombatLevel = mobile_defense_combat_level( unitPtr->next_x_loc(), unitPtr->next_y_loc(),
+									unitPtr->nation_recno, 0, hasWar );
 
-	if( ai_attack_target(unitPtr->next_x_loc(), unitPtr->next_y_loc(), targetCombatLevel, 1 ) )		//0-not defense mode, 1-just move to flag
+	if( ai_attack_target(unitPtr->next_x_loc(), unitPtr->next_y_loc(), targetCombatLevel, 0, 1 ) )		//0-not defense mode, 1-just move to flag 
 	{
 		fromRelation->last_military_aid_date = info.game_date;
 		return 1;

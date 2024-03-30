@@ -76,7 +76,7 @@ int Nation::think_attack_monster()
 
 	//--- call ai_attack_target() to attack the target town ---//
 
-	return ai_attack_target(targetFirm->loc_x1, targetFirm->loc_y1, targetCombatLevel, 0, attackerMinCombatLevel, 0, useAllCamp );
+	return ai_attack_target(targetFirm->loc_x1, targetFirm->loc_y1, targetCombatLevel, 0, 0, attackerMinCombatLevel, 0, useAllCamp );
 }
 //---------- End of function Nation::think_attack_monster --------//
 
@@ -112,10 +112,10 @@ int Nation::think_monster_target(int& targetCombatLevel)
 
 		//----- take into account of the mobile units around this town -----//
 
-		if (is_battle(firmPtr->center_x, firmPtr->center_y) > 0)
-			continue;
+		int mobileCombatLevel = mobile_defense_combat_level(firmPtr->center_x, firmPtr->center_y, firmPtr->nation_recno, 1, hasWar);
 
-		int mobileCombatLevel = ai_evaluate_target_combat_level(firmPtr->center_x, firmPtr->center_y, firmPtr->nation_recno);
+		if( mobileCombatLevel == -1 )		// do not attack this town because a battle is already going on
+			continue;
 
 		curRating = 3 * misc.points_distance( largestTown->center_x, largestTown->center_y,
 													  firmPtr->center_x, firmPtr->center_y );

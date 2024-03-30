@@ -419,9 +419,14 @@ void Town::think_collect_tax()
 	if( yearProfit < 0 )								// we are losing money now
 		minLoyalty -= (-yearProfit) / 100;		// more aggressive in collecting tax if we are losing a lot of money
 
-	minLoyalty = MAX( 45, minLoyalty );
+	minLoyalty = MAX( 55, minLoyalty );
 
 	//---------------------------------------------//
+
+	int achievableLoyalty = average_target_loyalty()-10;		// -10 because it's an average, -10 will be safer
+
+	if( achievableLoyalty > minLoyalty )		// if the achievable loyalty is higher, then use it 
+		minLoyalty = achievableLoyalty;
 
 	if( average_loyalty() < minLoyalty )
 		return;
@@ -641,7 +646,7 @@ int Town::protection_needed()
 			protectionNeeded += (int) firmPtr->productivity*2;
 
 			if( firmPtr->firm_id == FIRM_MINE )		// more protection for mines
-				protectionNeeded += 600;
+				protectionNeeded += 200;
 		}
 	}
 
@@ -670,19 +675,7 @@ int Town::protection_available()
 		//----- if this is a camp, add combat level points -----//
 
 		if( firmPtr->firm_id == FIRM_CAMP )
-		{
-			int linkedTownsCount = 0;
-			for (int townIndex = 0; townIndex < firmPtr->linked_town_count; townIndex++)
-			{
-				Town* firmTownPtr = town_array[firmPtr->linked_town_array[townIndex]];
-				if (firmTownPtr->nation_recno == nation_recno)
-					linkedTownsCount++;
-			}
-			int combatLevel = ((FirmCamp*)firmPtr)->total_combat_level();
-			if (linkedTownsCount > 1)
-				combatLevel = combatLevel / linkedTownsCount;
-			protectionLevel += 10 + combatLevel;		// +10 for the existence of the camp structure
-		}
+			protectionLevel += 10 + ((FirmCamp*)firmPtr)->total_combat_level();		// +10 for the existence of the camp structure
 	}
 
 	return protectionLevel;
@@ -690,137 +683,11 @@ int Town::protection_available()
 //---------- End of function Town::protection_available ------//
 
 
-//-------- Begin of function Town::add_protection_camps ------//
-void Town::add_protection_camps(std::vector<short>& protectionCamps, bool minimumProtection)
-{
-	short majorRaceCampRecno = 0;
-	std::vector<short> thisTownProtectionCamps;
-	Nation* ownNation = nation_array[nation_recno];
-
-	//For protection we leave camp with the king, one camp with the general of the major race,
-	//camps that captures other villages, camps with injured generals, camps with injured and weak soldiers
-	for (int i = 0; i < linked_firm_count; i++)
-	{
-		short firmRecno = linked_firm_array[i];
-		Firm* firmPtr = firm_array[firmRecno];
-
-		if (firmPtr->nation_recno != nation_recno)
-			continue;
-
-		if (firmPtr->firm_id != FIRM_CAMP)
-			continue;
-
-		//DieselMachine TODO if there is a battle going on, all linked camps should be protection camps
-		FirmCamp* firmCamp = (FirmCamp*)firmPtr;
-		if (firmCamp->overseer_recno == 0 || firmCamp->worker_count == 0 || firmCamp->patrol_unit_count > 0)
-			continue;
-
-		if (firmCamp->overseer_recno == ownNation->king_unit_recno)
-		{
-			thisTownProtectionCamps.push_back(firmRecno);
-		}
-
-		Unit* overseer = unit_array[firmCamp->overseer_recno];
-		if (majorRaceCampRecno == 0 && overseer->race_id == majority_race())
-		{
-			majorRaceCampRecno = firmRecno;
-			thisTownProtectionCamps.push_back(firmRecno);
-		}
-
-		if (!minimumProtection)
-		{
-			if ((overseer->hit_points < overseer->max_hit_points) && (overseer->hit_points < 100 - ownNation->pref_military_courage / 2))
-			{
-				thisTownProtectionCamps.push_back(firmRecno);
-			}
-
-			int lowHitPointsSoldiersCount = 0;
-			Worker* workerPtr = firmCamp->worker_array;
-			for (int j = 0; j < firmCamp->worker_count; j++, workerPtr++)
-			{
-				if (workerPtr->hit_points < 50.0)
-				{
-					lowHitPointsSoldiersCount++;
-				}
-			}
-			if (lowHitPointsSoldiersCount > 2 + ownNation->pref_military_courage / 25)	//from 2 to 6
-			{
-				thisTownProtectionCamps.push_back(firmRecno);
-			}
-		}
-	}
-
-	//Zero duplicates
-	for (int i = 0; i < thisTownProtectionCamps.size(); i++)
-	{
-		for (int j = i + 1; j < thisTownProtectionCamps.size(); j++)
-		{
-			if (thisTownProtectionCamps[j] == thisTownProtectionCamps[i])
-			{
-				thisTownProtectionCamps[j] = 0;
-			}
-		}
-	}
-
-	int totalCombatLevel = 0;
-	for (int i = 0; i < thisTownProtectionCamps.size(); i++)
-	{
-		if (thisTownProtectionCamps[i] != 0)
-		{
-			FirmCamp* firmCamp = (FirmCamp*)firm_array[thisTownProtectionCamps[i]];
-			totalCombatLevel += firmCamp->total_combat_level();
-		}
-	}
-
-	int neededProtection = protection_needed();
-	if (totalCombatLevel < neededProtection)
-	{
-		for (int i = 0; i < linked_firm_count; i++)
-		{
-			short firmRecno = linked_firm_array[i];
-			bool alreadyAdded = false;
-			for (int j = 0; j < thisTownProtectionCamps.size(); j++)
-			{
-				if (firmRecno == thisTownProtectionCamps[j])
-				{
-					alreadyAdded = true;
-					break;
-				}
-			}
-
-			if (alreadyAdded)
-				continue;
-
-			Firm* firmPtr = firm_array[firmRecno];
-
-			if (firmPtr->nation_recno != nation_recno)
-				continue;
-
-			if (firmPtr->firm_id != FIRM_CAMP)
-				continue;
-
-			FirmCamp* firmCamp = (FirmCamp*)firmPtr;
-			totalCombatLevel += firmCamp->total_combat_level();
-			thisTownProtectionCamps.push_back(firmRecno);
-			if (totalCombatLevel >= neededProtection)
-				break;
-		}
-	}
-
-	for (int i = 0; i < thisTownProtectionCamps.size(); i++)
-	{
-		if (thisTownProtectionCamps[i] != 0)
-			protectionCamps.push_back(thisTownProtectionCamps[i]);
-	}
-}
-//-------- End of function Town::add_protection_camps ------//
-
-
 //-------- Begin of function Town::think_build_market ------//
 //
 int Town::think_build_market()
 {
-	if( info.game_date < setup_date + 180 )		// don't build the market too soon, as it may need to migrate to other town
+	if( info.game_date < setup_date + 90 )		// don't build the market too soon, as it may need to migrate to other town
 		return 0;
 
 	Nation* ownNation = nation_array[nation_recno];
@@ -888,17 +755,12 @@ int Town::think_build_market()
 //
 int Town::think_build_camp()
 {
-	//Do not build second camp too early because we can move our first town
-	if (info.game_date < info.game_start_date + 180)
-		return 0;
-
 	//----- check if any of the other camps protecting this town is still recruiting soldiers, if so, wait until their recruitment is finished. So we can measure the protection available accurately.
 
 	Nation* 	 ownNation = nation_array[nation_recno];
 	FirmCamp* firmCamp;
 	Firm*		 firmPtr;
 	int		 campCount=0;
-	bool hasNotFullCamps = false;
 
 	for(int i=linked_firm_count-1; i>=0; --i)
 	{
@@ -914,15 +776,6 @@ int Town::think_build_camp()
 		if( firmCamp->nation_recno != nation_recno )
 			continue;
 
-		if (firmCamp->worker_count == MAX_WORKER)
-		{
-			firmCamp->ai_recruiting_soldier = 0;
-		}
-		else
-		{
-			hasNotFullCamps = true;
-		}
-
 		if( firmCamp->under_construction || firmCamp->ai_recruiting_soldier )  			// if this camp is still trying to recruit soldiers
 			return 0;
 
@@ -936,27 +789,22 @@ int Town::think_build_camp()
 		return ai_build_neighbor_firm(FIRM_CAMP);
 	}
 
-	if (hasNotFullCamps)
-		return 0;
-
 	//---- only build camp if we have enough cash and profit ----//
 
-	/*if( !ownNation->ai_should_spend(70+ownNation->pref_military_development/4) ) 		// 70 to 95
-		return 0;*/
+	if( !ownNation->ai_should_spend(70+ownNation->pref_military_development/4) ) 		// 70 to 95
+		return 0;
 
 	//---- only build camp if we need more protection than it is currently available ----//
 
+	int protectionNeeded 	= protection_needed();
 	int protectionAvailable = protection_available();
-	int protectionNeeded = protection_needed();
-	Nation* nationPtr = nation_array[nation_recno];
-	//Protect 1.5 - 2.5 times more than needed depending on the military development
-	if (nationPtr->ai_has_enough_food() > 0)
-		protectionNeeded = protectionNeeded * (150 + nationPtr->pref_military_development) / 100;
 
-	if (protectionAvailable >= protectionNeeded)
+	if( protectionAvailable >= protectionNeeded )
 		return 0;
 
-	/*if( !(protectionNeeded>0 && protectionAvailable==0) )		// if protection needed > 0, and protection available is 0, we must build a camp now
+	Nation* nationPtr = nation_array[nation_recno];
+
+	if( !(protectionNeeded>0 && protectionAvailable==0) )		// if protection needed > 0, and protection available is 0, we must build a camp now
 	{
 		int needUrgency = 100 * (protectionNeeded-protectionAvailable) / protectionNeeded;
 
@@ -965,7 +813,7 @@ int Town::think_build_camp()
 		{
 			return 0;
 		}
-	}*/
+	}
 
 	//--- check if we have enough people to recruit ---//
 
@@ -1031,10 +879,6 @@ void Town::update_product_supply()
 
 int Town::think_build_research()
 {
-	//Do not build the first year
-	if (info.game_date < info.game_start_date + 365)
-		return 0;
-
 	Nation* nationPtr = nation_array[nation_recno];
 
 	if( !is_base_town )
@@ -1699,8 +1543,7 @@ int Town::think_counter_spy()
 
 	Nation* ownNation = nation_array[nation_recno];
 
-	//DieselMachine
-	if( ownNation->total_spy_count > ownNation->total_population * (5+ownNation->pref_counter_spy/10) / 100 )		// 5% to 15%
+	if( ownNation->total_spy_count > ownNation->total_population * (10+ownNation->pref_spy/5) / 100 )		// 10% to 30%
 		return 0;
 
 	if( !ownNation->ai_should_spend(ownNation->pref_counter_spy/2) )		// 0 to 50
@@ -1764,8 +1607,7 @@ int Town::think_spying_town()
 	if( ownNation->total_population < 30-ownNation->pref_spy/10 )		// don't use spies if the population is too low, we need to use have people to grow population
 		return 0;
 
-	//DieselMachine
-	if( ownNation->total_spy_count > ownNation->total_population * (10+ownNation->pref_spy/10) / 100 )		// 10% to 20%
+	if( ownNation->total_spy_count > ownNation->total_population * (10+ownNation->pref_spy/5) / 100 )		// 10% to 30%
 		return 0;
 
 	if( !ownNation->ai_should_spend(ownNation->pref_spy/2) )		// 0 to 50
@@ -1863,34 +1705,6 @@ void Town::update_base_town_status()
 int Town::new_base_town_status()
 {
 	Nation* ownNation = nation_array[nation_recno];
-
-	//---- town near mine should be the base ---//
-
-	for (int i = 0; i < linked_firm_count; i++)
-	{
-		if (firm_array[linked_firm_array[i]]->firm_id == FIRM_MINE)
-			return 1;
-	}
-
-	//---- if there is a town near mine with low population and only two towns in total then only mine town should be the base ---//
-
-	if (ownNation->ai_town_count == 2)
-	{
-		int townWithMinePopulation = MAX_TOWN_POPULATION;
-		for (int i = 0; i < ownNation->ai_town_count; i++)
-		{
-			Town* townPtr = town_array[ownNation->ai_town_array[i]];
-			for (int j = 0; j < townPtr->linked_firm_count; j++)
-			{
-				if (firm_array[townPtr->linked_firm_array[j]]->firm_id == FIRM_MINE)
-				{
-					townWithMinePopulation = townPtr->population;
-				}
-			}
-		}
-		if (townWithMinePopulation < MAX_TOWN_POPULATION / 2)
-			return 0;
-	}
 
 	if( population > 20 + ownNation->pref_territorial_cohesiveness/10 )
 		return 1;

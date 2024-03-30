@@ -46,12 +46,6 @@ void FirmCamp::init_derived()
 
 void FirmCamp::process_ai()
 {
-	if (info.game_date % 10 == firm_recno % 10)
-	{
-		if (think_close())
-			return;
-	}
-
 	if( info.game_date%15==firm_recno%15 )		// do not call too often as the penalty of accumulation is 10 days
 		think_use_cash_to_capture();
 
@@ -92,14 +86,9 @@ void FirmCamp::process_ai()
 	if( info.game_date%30==firm_recno%30 )
 		think_assign_better_commander();
 
-	//----- think about finding soldiers with the same race as general -----//
-
-	if( info.game_date%30==firm_recno%30 )
-		think_optimize_soldiers_race();
-
 	//----- think about changing links to foreign town -----//
 
-	if( info.game_date%5==firm_recno%5 )
+	if( info.game_date%30==firm_recno%30 )
 		think_change_town_link();
 
 	//------ think about attacking enemies nearby -------//
@@ -281,39 +270,6 @@ void FirmCamp::ai_attack_town_defender(Unit* attackerUnit)
 //-------- End of function FirmCamp::ai_attack_town_defender ------//
 
 
-//--------- Begin of function FirmCamp::think_close ---------//
-bool FirmCamp::think_close()
-{
-	Nation* ownNation = nation_array[nation_recno];
-	bool shouldClose = true;
-	for (int i = 0; i < linked_town_count; i++)
-	{
-		Town* townPtr = town_array[linked_town_array[i]];
-		if (townPtr->nation_recno == 0 || townPtr->nation_recno == nation_recno)
-		{
-			shouldClose = false;
-			break;
-		}
-
-		NationRelation* nationRelation = ownNation->get_relation(townPtr->nation_recno);
-		if (nationRelation->status < NATION_NEUTRAL)
-		{
-			shouldClose = false;
-			break;
-		}
-	}
-
-	if (shouldClose)
-	{
-		patrol();
-		ai_del_firm();
-		return true;
-	}
-	return false;
-}
-//-------- End of function FirmCamp::think_close ------//
-
-
 //--------- Begin of function FirmCamp::think_recruit ---------//
 //
 // Think about recruiting an overseer and soliders to this base.
@@ -323,29 +279,12 @@ void FirmCamp::think_recruit()
 	if( patrol_unit_count )		// if there are units of this camp patrolling outside
 		return;
 
-	//Do not recruit if we are defending until battle ends
-	DefenseUnit* defPtr = defense_array;
-	bool defending = false;
-	for (int i = 0; i <= MAX_WORKER; i++, defPtr++)
-	{
-		if(defPtr->unit_recno != 0)
-		{
-			defending = true;
-			break;
-		}
-	}
-	if (defending)
-	{
-		return;
-	}
-
 	Nation* nationPtr = nation_array[nation_recno];
 
 	ai_recruiting_soldier = 1; 		// the AI is currently trying to recruit soldiers
 
 	//---- if there are currently units coming to this firm ----//
 
-	int realComingCount = 0;
 	if( coming_unit_count > 0 )
 	{
 		Unit* unitPtr;
@@ -362,13 +301,14 @@ void FirmCamp::think_recruit()
 			if( unitPtr->nation_recno == nation_recno &&
 				 unitPtr->action_mode == ACTION_ASSIGN_TO_FIRM )
 			{
-				realComingCount++;
+				//--- if so, do not do anything unit they are all done ---//
+
+				return;
 			}
 		}
-	}
 
-	if (realComingCount == 0)
 		coming_unit_count = 0;
+	}
 
 	//-- if this camp is empty, think about move a whole troop from a useless camp (should_ai_close()==1)
 
@@ -435,42 +375,34 @@ void FirmCamp::think_recruit()
 	if( !overseer_recno )
 		nationPtr->add_action(loc_x1, loc_y1, -1, -1, ACTION_AI_ASSIGN_OVERSEER, FIRM_CAMP);
 
-	if (worker_count == MAX_WORKER)
-	{
-		ai_recruiting_soldier = 0;
-		return;
-	}
-
-	ai_recruit(0, realComingCount);  //first parameter is not used
-
-
-	//DieselMachine TODO we have ai_combat_level_needed() and Town::protection_needed(). Think of merging them
 	//---- think about the no. of workers needed for this base ----//
 
-	//Unit* unit = unit_array[overseer_recno];
-	/*int combatDiff = 0;
+	int combatDiff;
 
 	if( overseer_recno == nationPtr->king_unit_recno )		// recruit as many soldiers as possible if the commander is the king
 	{
 		combatDiff = 1000;
 	}
+	else if( nationPtr->total_jobless_population > 20 + (100-nationPtr->pref_military_development) / 3 )		// 20 to 53
+	{
+		combatDiff = 1000;		// recruit as many as possible
+	}
 	else
 	{
-		if( nationPtr->total_jobless_population > nationPtr->all_population() * (20 + nationPtr->pref_inc_pop_by_growth / 4) / 100.0 )	// 20% to 45%
-		{
-			combatDiff = ai_combat_level_needed() - total_combat_level();
-		}
-	}*/
+		int combatLevelNeeded = ai_combat_level_needed();
 
-	/*if( combatDiff > 0 )
+		combatDiff = combatLevelNeeded - total_combat_level();
+	}
+
+	if( combatDiff > 0 )
 	{
-		ai_recruit(combatDiff, realComingCount);
+		ai_recruit(combatDiff);
 	}
 	else
 	{
 		if( overseer_recno )
 			ai_recruiting_soldier = 0;		// this firm has enough soldiers already
-	}*/
+	}
 }
 //----------- End of function FirmCamp::think_recruit ----------//
 
@@ -481,17 +413,14 @@ void FirmCamp::think_recruit()
 //
 // return: <int> 1-succeeded, 0-failed.
 //
-int FirmCamp::ai_recruit(int recruitCombatLevel, int realComingCount)
+int FirmCamp::ai_recruit(int recruitCombatLevel)
 {
 	if( worker_count == MAX_WORKER || !overseer_recno )
 		return 0;
 
-	//int recruitCount = MAX( 1, recruitCombatLevel / 20 );
+	int recruitCount = MAX( 1, recruitCombatLevel / 20 );
 
-	//recruitCount = MIN( recruitCount, MAX_WORKER-worker_count );
-	int recruitCount = MAX_WORKER - worker_count - realComingCount;
-	if (recruitCount <= 0)
-		return 0;
+	recruitCount = MIN( recruitCount, MAX_WORKER-worker_count );
 
 	//--- first try to recruit soldiers directly from a linked village ---//
 
@@ -505,17 +434,6 @@ int FirmCamp::ai_recruit(int recruitCombatLevel, int realComingCount)
 		townPtr = town_array[ linked_town_array[i] ];
 
 		if( townPtr->nation_recno != nation_recno || !townPtr->jobless_population )
-			continue;
-
-		Nation* nationPtr = nation_array[nation_recno];
-		//DieselMachine TODO this code is duplicated with Nation::recruit_jobless_worker
-		//First count how many soldiers are there in the linked forts. Do not recruit too many
-		//We should have 4-8 soldiers for every 20 village population
-		double townSoldiersCount = townPtr->linked_camp_soldiers_count();
-		double prefRecruiting = 0.0;
-		if (nationPtr->yearly_food_change() > 0)
-			prefRecruiting = (double)nationPtr->pref_military_development + (100.0 - (double)nationPtr->pref_inc_pop_by_growth);
-		if (townPtr->population < MAX_TOWN_POPULATION && townSoldiersCount > townPtr->population * (4.0 + 4.0 * prefRecruiting / 200.0) / 20.0)
 			continue;
 
 		//-- recruit majority race first, but will also consider other races --//
@@ -555,46 +473,10 @@ int FirmCamp::ai_recruit(int recruitCombatLevel, int realComingCount)
 		}
 	}
 
-	//------ next, try to recruit from remote villages only if this fort is capturing something -----//
-	bool linkedToOurTown = false;
-	for (int i = 0; i < linked_town_count; i++)
-	{
-		if(town_array.is_deleted(linked_town_array[i]))
-			continue;
+	//------ next, try to recruit from remote villages -----//
 
-		Town* linkedTownPtr = town_array[linked_town_array[i]];
-
-		if (linkedTownPtr->nation_recno == nation_recno)
-		{
-			linkedToOurTown = true;
-			break;
-		}
-	}
-
-	if (linkedToOurTown)
-		return 0;
-
-	//if( recruitCount > 0 )
-		//nation_array[nation_recno]->add_action(loc_x1, loc_y1, -1, -1, ACTION_AI_ASSIGN_WORKER, FIRM_CAMP, recruitCount);
-	for (int i = 0; i < recruitCount; i++)
-	{
-		int unitRecno = nation_array[nation_recno]->recruit_jobless_worker(this, 0);
-		if (unitRecno != 0)
-		{
-			Unit* unit = unit_array[unitRecno];
-			if (unit != nullptr)
-			{
-				unit->assign(loc_x1, loc_y1);
-				if (coming_unit_count < MAX_WORKER)
-				{
-					coming_unit_array[coming_unit_count] = unitRecno;
-					coming_unit_count++;
-				}
-			}
-		}
-	}
-
-	//DieselMachine TODO if we need to recruit more and have cash, try to hire from inn
+	if( recruitCount > 0 )
+		nation_array[nation_recno]->add_action(loc_x1, loc_y1, -1, -1, ACTION_AI_ASSIGN_WORKER, FIRM_CAMP, recruitCount);
 
 	return 1;
 }
@@ -617,10 +499,8 @@ int FirmCamp::ai_combat_level_needed()
 	{
 		townPtr = town_array[ linked_town_array[i] ];
 
-		if (townPtr->nation_recno == 0)
-			combatNeeded += 1000;
-
 		//------- this is its own town -------//
+
 		if( townPtr->nation_recno == nation_recno )
 		{
 			if( townPtr->should_ai_migrate() ) 	// no need for this if this town is going to migrate
@@ -795,7 +675,7 @@ void FirmCamp::think_capture()
 				return;
 			}
 		}
-		/*else
+		else
 		{
 			//--- don't attack if the target nation's military rating is higher than ours ---//
 
@@ -804,24 +684,8 @@ void FirmCamp::think_capture()
 			{
 				return;
 			}
-		}*/
-	}
-
-	bool hasLinkedEnemyCamps = false;
-	for (int j = 0; j < targetTown->linked_firm_count; j++)
-	{
-		Firm* linkedFirm = firm_array[targetTown->linked_firm_array[j]];
-		if (linkedFirm->nation_recno != nation_recno && linkedFirm->firm_id == FIRM_CAMP)
-		{
-			hasLinkedEnemyCamps = true;
-			break;
 		}
 	}
-	//If no other kingdom tries to capture this village, we will wait
-	int averageResistance = targetTown->average_resistance(nation_recno);
-	int averageTargetResistance = targetTown->average_target_resistance(nation_recno);
-	if (!hasLinkedEnemyCamps && (averageResistance > 25 || averageResistance > averageTargetResistance))
-		return;
 
 	//------ send out troops to capture the target town now ----//
 
@@ -861,9 +725,8 @@ int FirmCamp::think_capture_target_town()
 
 	//--- if there are any units currently being assigned to this camp ---//
 
-	//DieselMachine TODO remove this condition
-	//if( nation_array[nation_recno]->is_action_exist( loc_x1, loc_y1, -1, -1, ACTION_AI_ASSIGN_WORKER, FIRM_CAMP ) )
-		//return 0;
+	if( nation_array[nation_recno]->is_action_exist( loc_x1, loc_y1, -1, -1, ACTION_AI_ASSIGN_WORKER, FIRM_CAMP ) )
+		return 0;
 
 	//-- decide which town to attack (only when the camp is linked to more than one town ---//
 
@@ -885,7 +748,6 @@ int FirmCamp::think_capture_target_town()
 
 		if( !townPtr->nation_recno )		// only capture independent town
 		{
-
 			curResistance = townPtr->average_resistance(nation_recno);
 			curTargetResistance = townPtr->average_target_resistance(nation_recno);
 
@@ -941,7 +803,7 @@ int FirmCamp::ai_capture_independent_town(Town* targetTown, int defenseCombatLev
 
 	if( combatDiff > 0 )
 	{
-		if( ai_recruit(combatDiff, 0) )    	// try to recruit new soldiers to increase the combat ability of the troop
+		if( ai_recruit(combatDiff) )    	// try to recruit new soldiers to increase the combat ability of the troop
 			return 0;
 	}
 
@@ -950,7 +812,7 @@ int FirmCamp::ai_capture_independent_town(Town* targetTown, int defenseCombatLev
 
 	//---------- attack the target town now ----------//
 
-	if( nation_array[nation_recno]->ai_attack_target(targetTown->loc_x1, targetTown->loc_y1, defenseCombatLevel, 0, 0, firm_recno) )
+	if( nation_array[nation_recno]->ai_attack_target(targetTown->loc_x1, targetTown->loc_y1, defenseCombatLevel, 0, 0, 0, firm_recno) )
 		return 1;
 
 	return 0;
@@ -1021,18 +883,12 @@ int FirmCamp::think_assign_better_overseer(Town* targetTown)
 	//------ get the two most populated races of the town ----//
 
 	int mostRaceId1, mostRaceId2;
+
 	targetTown->get_most_populated_race(mostRaceId1, mostRaceId2);
 
 	//-- if the resistance of the majority race has already dropped to its lowest possible --//
-	if (mostRaceId1 != 0 && think_assign_better_overseer2(targetTown->town_recno, mostRaceId1))
-		return 1;
 
-	//-- if the resistance of the 2nd majority race has already dropped to its lowest possible --//
-	if (mostRaceId2 != 0 && think_assign_better_overseer2(targetTown->town_recno, mostRaceId2))
-		return 1;
-
-
-	/*if( targetTown->race_resistance_array[mostRaceId1-1][nation_recno-1] <=
+	if( targetTown->race_resistance_array[mostRaceId1-1][nation_recno-1] <=
 		 (float) (targetTown->race_target_resistance_array[mostRaceId1-1][nation_recno-1]+1) )
 	{
 		if( targetTown->race_resistance_array[mostRaceId1-1][nation_recno-1] > 30 )
@@ -1040,9 +896,11 @@ int FirmCamp::think_assign_better_overseer(Town* targetTown)
 			if( think_assign_better_overseer2(targetTown->town_recno, mostRaceId1) )
 				return 1;
 		}
-	}*/
+	}
 
-	/*if( targetTown->race_resistance_array[mostRaceId2-1][nation_recno-1] <=
+	//-- if the resistance of the 2nd majority race has already dropped to its lowest possible --//
+
+	if( targetTown->race_resistance_array[mostRaceId2-1][nation_recno-1] <=
 		 (float) (targetTown->race_target_resistance_array[mostRaceId2-1][nation_recno-1]+1) )
 	{
 		if( targetTown->race_resistance_array[mostRaceId2-1][nation_recno-1] > 30 )
@@ -1050,7 +908,7 @@ int FirmCamp::think_assign_better_overseer(Town* targetTown)
 			if( think_assign_better_overseer2(targetTown->town_recno, mostRaceId2) )
 				return 1;
 		}
-	}*/
+	}
 
 	return 0;
 }
@@ -1061,41 +919,27 @@ int FirmCamp::think_assign_better_overseer(Town* targetTown)
 //
 int FirmCamp::think_assign_better_overseer2(int targetTownRecno, int raceId)
 {
-	Town* townPtr = town_array[targetTownRecno];
+	int reduceResistance;
+
 	Nation* ownNation = nation_array[nation_recno];
 
-	int currentTargetResistance = 100;
-	if (overseer_recno != 0)
-	{
-		Unit* unitPtr = unit_array[overseer_recno];
-		if (unitPtr->race_id == raceId)
-			currentTargetResistance = 100 - townPtr->camp_influence(overseer_recno);
-	}
-
-	int targetResistance = 100;
-	//DieselMachine TODO we should try to hire capturer also
-	int bestUnitRecno = ownNation->find_best_capturer(targetTownRecno, raceId, /*out*/ targetResistance);
-	if( targetResistance >= currentTargetResistance || targetResistance >= 50 - ownNation->pref_peacefulness/5 )		// 30 to 50 depending on
-		return 0;
+	int bestUnitRecno = ownNation->find_best_capturer(targetTownRecno, raceId, reduceResistance);
 
 	if( !bestUnitRecno || bestUnitRecno==overseer_recno )		// if we already got the best one here
 		return 0;
 
 	//---- only assign new overseer if the new one's leadership is significantly higher than the current one ----//
 
-	//DieselMachine we may be sending a general of another race. This condition should not be applied in this case
-	/*if( overseer_recno &&
+	if( overseer_recno && 
 		 unit_array[bestUnitRecno]->skill.skill_level < unit_array[overseer_recno]->skill.skill_level + 15 )
 	{
 		return 0;
-	}*/
+	}
 
 	//------ check what the best unit is -------//
 
 	if( !ownNation->mobilize_capturer(bestUnitRecno) )
-	{
 		return 0;
-	}
 
 	//---------- add the action to the queue now ----------//
 
@@ -1144,7 +988,7 @@ int FirmCamp::ai_capture_enemy_town(Town* targetTown, int defenseCombatLevel)
 	}
 
 	return nation_array[nation_recno]->ai_attack_target(targetTown->loc_x1, targetTown->loc_y1,
-			 defenseCombatLevel, 0, 0, firm_recno, useAllCamp );
+			 defenseCombatLevel, 0, 0, 0, firm_recno, useAllCamp );
 }
 //--------- End of function FirmCamp::ai_capture_enemy_town --------//
 
@@ -1204,7 +1048,6 @@ int FirmCamp::think_capture_use_spy2(Town* targetTown, int raceId, int curSpyLev
 	else
 	{
 		curResistance    = (int) targetTown->race_resistance_array[raceId-1][nation_recno-1];
-		//DieselMachine TODO bug here
 		targetResistance = targetTown->race_target_resistance_array[raceId-1][nation_recno-1];
 	}
 
@@ -1326,6 +1169,42 @@ int FirmCamp::think_use_cash_to_capture()
 	return 1;
 }
 //--------- End of function FirmCamp::think_use_cash_to_capture -------//
+
+
+//------- Begin of function FirmCamp::think_linked_town_change_nation ------//
+//
+// This function is called by Town::set_nation() when a town linked
+// to this firm has changed nation.
+//
+// <int> linkedTownRecno - the recno of the town that has changed nation.
+// <int> oldNationRecno  - the old nation recno of the town
+// <int> newNationRecno  - the new nation recno of the town
+//
+void FirmCamp::think_linked_town_change_nation(int linkedTownRecno, int oldNationRecno, int newNationRecno)
+{
+	//-----------------------------------------------//
+	//
+	// If we are trying to capture an independent town and our
+	// enemies have managed to capture it first.
+	//
+	//-----------------------------------------------//
+
+	Nation* ownNation = nation_array[nation_recno];
+
+	if( oldNationRecno==0 && newNationRecno>0 && newNationRecno != nation_recno  )
+	{
+		Town* townPtr = town_array[linkedTownRecno];
+
+		//--- if the town does not have any protection, then don't remove this camp ---//
+
+		if( townPtr->protection_available()==0 )
+			return;
+
+		should_close_flag = 1;
+		ownNation->firm_should_close_array[firm_id-1]++;
+	}
+}
+//-------- End of function FirmCamp::think_linked_town_change_nation ------//
 
 
 //------- Begin of function FirmCamp::think_attack_nearby_enemy -------//
@@ -1452,18 +1331,6 @@ void FirmCamp::think_change_town_link()
 //
 int FirmCamp::think_assign_better_commander()
 {
-	if (overseer_recno != 0)
-	{
-		for (int i = linked_town_count - 1; i >= 0; i--)
-		{
-			Town* townPtr = town_array[linked_town_array[i]];
-
-			//We are capturing this town, there is a separate place to assign a better commander
-			if (townPtr->nation_recno == 0 && townPtr->closest_own_camp() == firm_recno)
-				return 0;
-		}
-	}
-
 	//----- if there is already an overseer being assigned to the camp ---//
 
 	Nation* ownNation = nation_array[nation_recno];
@@ -1473,7 +1340,6 @@ int FirmCamp::think_assign_better_commander()
 
 	//--- if there is already one existing ---//
 
-	//DieselMachine TODO: when we are moving the whole troop from alone standing fort there is no such action
 	if( actionRecno )
 	{
 		//--- if the action still is already being processed, don't bother with it ---//
@@ -1493,81 +1359,43 @@ int FirmCamp::think_assign_better_commander()
 	int  	  bestLeadership=0;
 
 	if( overseer_recno )
-		bestLeadership = cur_commander_leadership(bestRaceId);
-
-	//--- first look for soldiers of the current fort ---//
-	workerPtr = worker_array;
-
-	for( int j=1 ; j<=worker_count ; j++, workerPtr++ )
 	{
-		if( !workerPtr->race_id )
-			continue;
-
-		int workerLeadership = workerPtr->skill_level;
-
-		if( workerPtr->race_id != bestRaceId )
-			workerLeadership /= 2;
-
-		if( workerLeadership > bestLeadership )
-		{
-			bestLeadership = workerLeadership;
-			bestFirmRecno  = firm_recno;
-			bestWorkerId   = j;
-		}
+		bestLeadership	= cur_commander_leadership(bestRaceId)
+							  + 10 + ownNation->pref_loyalty_concern/10;			// nations that have higher loyalty concern will not switch commander too frequently
 	}
 
-	if (bestFirmRecno == 0)
+	//--- locate for a soldier who has a higher leadership ---//
+
+	for( int i=ownNation->ai_camp_count-1 ; i>=0 ; i-- )
 	{
-		//--- locate for a soldier who has a higher leadership ---//
-		bestLeadership += 10 + ownNation->pref_loyalty_concern / 10; // nations that have higher loyalty concern will not switch commander too frequently
+		firmPtr = firm_array[ ownNation->ai_camp_array[i] ];
 
-		for( int i=ownNation->ai_camp_count-1 ; i>=0 ; i-- )
+		if( firmPtr->region_id != region_id )
+			continue;
+
+		workerPtr = firmPtr->worker_array;
+
+		for( int j=1 ; j<=firmPtr->worker_count ; j++, workerPtr++ )
 		{
-			int firmRecno = ownNation->ai_camp_array[i];
-			firmPtr = firm_array[ firmRecno ];
-
-			if( firmPtr->region_id != region_id )
+			if( !workerPtr->race_id )
 				continue;
 
-			workerPtr = firmPtr->worker_array;
+			int workerLeadership = workerPtr->skill_level;
 
-			for( int j=1 ; j<=firmPtr->worker_count ; j++, workerPtr++ )
+			if( workerPtr->race_id != bestRaceId )
+				workerLeadership /= 2;
+
+			if( workerLeadership > bestLeadership )
 			{
-				if( !workerPtr->race_id )
-					continue;
-
-				int workerLeadership = workerPtr->skill_level;
-
-				if( workerPtr->race_id != bestRaceId )
-					workerLeadership /= 2;
-
-				if( workerLeadership > bestLeadership )
-				{
-					bestLeadership = workerLeadership;
-					bestFirmRecno  = firmPtr->firm_recno;
-					bestWorkerId   = j;
-				}
+				bestLeadership = workerLeadership;
+				bestFirmRecno  = firmPtr->firm_recno;
+				bestWorkerId   = j;
 			}
 		}
 	}
 
 	if( bestFirmRecno == 0 )
-	{
-		if (overseer_recno != 0 && bestLeadership < 40)
-		{
-			Unit* unitCommander = unit_array[overseer_recno];
-			if (unitCommander->race_id != bestRaceId)
-			{
-				Nation* ourNation = nation_array[nation_recno];
-				int trainTownRecno = 0;
-				int newLeaderRecno = ourNation->train_unit(firm_skill_id, bestRaceId, loc_x1, loc_y1, trainTownRecno);
-				if (newLeaderRecno != 0)
-					return ourNation->add_action(loc_x1, loc_y1, -1, -1, ACTION_AI_ASSIGN_OVERSEER, FIRM_CAMP, 1, newLeaderRecno);
-			}
-		}
-
 		return 0;
-	}
 
 	//-------- assign the overseer now -------//
 
@@ -1685,87 +1513,3 @@ int FirmCamp::best_commander_race()
 }
 //-------- End of function FirmCamp::best_commander_race ---------//
 
-
-//------- Begin of function FirmCamp::optimize_soldiers_race -------//
-void FirmCamp::think_optimize_soldiers_race()
-{
-	if (overseer_recno == 0)
-		return;
-
-	Unit* overseer = unit_array[overseer_recno];
-	Worker* workerPtr = worker_array;
-
-	bool hasSoldierOfDifferentRace = false;
-	for (int i = 0; i < worker_count; i++, workerPtr++)
-	{
-		if (workerPtr->race_id > 0 && workerPtr->race_id != overseer->race_id)
-		{
-			hasSoldierOfDifferentRace = true;
-			break;
-		}
-	}
-
-	if (!hasSoldierOfDifferentRace)
-		return;
-
-	FirmCamp* bestCampPtr = nullptr;
-	int bestWorkerId = -1;
-	int bestDistance = MAX_WORLD_X_LOC + MAX_WORLD_Y_LOC;
-	Nation* nationPtr = nation_array[nation_recno];
-	for (int i = nationPtr->ai_camp_count - 1; i >= 0; i--)
-	{
-		FirmCamp* firmCamp = (FirmCamp*) firm_array[nationPtr->ai_camp_array[i]];
-
-		if (firmCamp->region_id != region_id)
-			continue;
-
-		if (firmCamp->firm_recno == firm_recno)
-			continue;
-
-		if (firmCamp->overseer_recno != 0 && unit_array[firmCamp->overseer_recno]->race_id == overseer->race_id)
-			continue;
-
-		workerPtr = firmCamp->worker_array;
-		for (int j = 0; j < firmCamp->worker_count; j++, workerPtr++)
-		{
-			if (workerPtr->race_id == overseer->race_id)
-			{
-				int distance = misc.points_distance(center_x, center_y, firmCamp->center_x, firmCamp->center_y);
-				if (distance < bestDistance)
-				{
-					bestDistance = distance;
-					bestCampPtr = firmCamp;
-					bestWorkerId = j + 1;
-					break;
-				}
-			}
-		}
-	}
-
-	if (bestCampPtr != nullptr)
-	{
-		int unitRecno = bestCampPtr->mobilize_worker(bestWorkerId, COMMAND_AI);
-		if (unitRecno == 0)
-			return;
-
-		Unit* unitPtr = unit_array[unitRecno];
-		unitPtr->assign(loc_x1, loc_y1);
-	}
-}
-//-------- End of function FirmCamp::optimize_soldiers_race ---------//
-
-
-//-------- Begin of function FirmCamp::linkedToIndependentVillage ---------//
-bool FirmCamp::linkedToIndependentVillage()
-{
-	for (int i = 0; i < linked_town_count; i++)
-	{
-		Town* linkedTown = town_array[linked_town_array[i]];
-		if (linkedTown->nation_recno == 0)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-//-------- End of function FirmCamp::linkedToIndependentVillage ---------//

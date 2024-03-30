@@ -37,8 +37,6 @@
 #include <OTOWN.h>
 #endif
 
-#include <vector>
-
 //--------- define parameters ----------//
 
 #define  MAX_AI_REGION				20
@@ -156,7 +154,6 @@ struct ActionNode
 
 //------- Define struct AttackCamp --------//
 
-//DieselMachine TODO remove this limitation
 #define MAX_SUITABLE_ATTACK_CAMP    30    // total no. of useful camps
 
 #pragma pack(1)
@@ -439,12 +436,10 @@ public:
 	int 			think_attack_town();
 	int			think_close_camp();
 
-	int 			ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLevel, int justMoveToFlag=0, int attackerMinCombatLevel=0, int attackerCampRecno=0, int useAllCamp=0);
+	int 			ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLevel, int defenseMode=0, int justMoveToFlag=0, int attackerMinCombatLevel=0, int attackerCampRecno=0, int useAllCamp=0);
 	void 			ai_attack_target_sync();
-	void 			ai_attack_target_execute(bool startAttack, int justMoveToFlag);
+	void 			ai_attack_target_execute(int directAttack);
 	int 			ai_attack_order_nearby_mobile(int targetXLoc, int targetYLoc, int targetCombatLevel);
-	void			ai_collect_military_force(int targetXLoc, int targetYLoc, int targetRecno, std::vector<int>& camps, std::vector<int>& units, std::vector<int>& ourUnits);
-	int 			ai_evaluate_target_combat_level(int targetXLoc, int targetYLoc, int targetRecno);
 
 	int 			ai_sea_attack_target(int targetXLoc, int targetYLoc);
 
@@ -457,7 +452,7 @@ public:
 	int 			think_attack_monster();
 	int 			think_monster_target(int& targetCombatLevel);
 
-	int 			ai_should_expand_military();
+	int			ai_should_expand_military();
 	int 			ai_is_troop_need_new_camp();
 	int 			ai_has_too_many_camp();
 
@@ -489,22 +484,21 @@ public:
 	//--------------------------------------------------------------//
 
 	int 			think_capture_independent();
-	int 			capture_expected_resistance(int townRecno, int raceId, int *captureUnitRecno);
+	int 			capture_expected_resistance(int townRecno, int *captureUnitRecno);
 	int 			start_capture(int townRecno, int captureUnitRecno);
 	int 			capture_build_camp(int townRecno, int raceId, int captureUnitRecno);
 	int 			find_best_capturer(int townRecno, int raceId, int& bestResistanceReduce);
-	int 			hire_best_capturer(int townRecno, int raceId, int& targetResistance, bool hire);
+	int 			hire_best_capturer(int townRecno, int raceId);
 	int			mobilize_capturer(int unitRecno);
 
 	int 			think_capture_new_enemy_town(Town* capturerTown, int useAllCamp=0);
 	void 			think_capturing_enemy_town();
 
 	int 			attack_enemy_town_defense(Town* targetTown, int useAllCamp=0);
-	Town* 			think_capture_enemy_town_target(Town* capturerTown);
-	//int 			enemy_town_combat_level(Town* targetTown, int returnIfWar, int& hasWar);
-	//int 			enemy_firm_combat_level(Firm* targetFirm, int returnIfWar, int& hasWar);
-	//int 			mobile_defense_combat_level(int targetXLoc, int targetYLoc, int targetNationRecno, int returnIfWar, int& hasWar);
-	int 			is_battle(int targetXLoc, int targetYLoc);
+	Town* 		think_capture_enemy_town_target(Town* capturerTown);
+	int 			enemy_town_combat_level(Town* targetTown, int returnIfWar, int& hasWar);
+	int 			enemy_firm_combat_level(Firm* targetFirm, int returnIfWar, int& hasWar);
+	int 			mobile_defense_combat_level(int targetXLoc, int targetYLoc, int targetNationRecno, int returnIfWar, int& hasWar);
 
 	int 			should_use_cash_to_capture();
 
@@ -577,7 +571,7 @@ public:
 	int 			think_eliminate_enemy_firm(int enemyNationRecno);
 	int 			think_eliminate_enemy_unit(int enemyNationRecno);
 
-	int 			think_attack_enemy_firm();
+	int 			think_attack_enemy_firm(int enemyNationRecno, int firmId);
 	int 			think_surrender();
 
 	int 			ai_surrender_to_rating(int nationRecno);

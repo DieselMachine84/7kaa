@@ -2062,7 +2062,7 @@ int Firm::pull_town_people(int townRecno, char remoteAction, int raceId, int for
 
 			if( forcePull )			// right-click to force pulling a worker from the village
 			{
-				if( townPtr->race_loyalty_array[raceId-1] < MIN_RECRUIT_LOYALTY + townPtr->recruit_dec_loyalty(raceId, 0) )
+				if( townPtr->race_loyalty_array[raceId-1] < MIN_RECRUIT_LOYALTY )
 					return 0;
 
 				townPtr->recruit_dec_loyalty(raceId);

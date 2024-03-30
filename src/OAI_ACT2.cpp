@@ -251,11 +251,6 @@ int Nation::ai_assign_worker(ActionNode* actionNode)
 	err_when(!locPtr->is_firm());
 
 	Firm* firmPtr = firm_array[locPtr->firm_recno()];
-	if (firmPtr->firm_id == FIRM_CAMP)
-	{
-		//DieselMachine
-		printf("ai_assign_worker is called for a camp. It is a bug\n");
-	}
 
 	err_when( firmPtr->firm_id != firmId );
 	err_when( !firm_res[firmPtr->firm_id]->need_worker );
@@ -283,7 +278,6 @@ int Nation::ai_assign_worker(ActionNode* actionNode)
 
 	//------ recruit on job worker ----------//
 
-	//DieselMachine TODO seat of power actually calls this function
 	if( !unitPtr && firmPtr->firm_id != FIRM_BASE )   	// seat of power shouldn't call this function at all, as it doesn't handle the racial issue.
 	{
 		unitRecno = recruit_on_job_worker(firmPtr, actionNode->action_para2);
@@ -382,7 +376,6 @@ int Nation::ai_settle_to_other_town(ActionNode* actionNode)
 		if( !townPtr->has_linked_own_camp ) // need overseer to reward
 			return 0;
 
-		//DieselMachine TODO use can_recruit instead
 		int minRecruitLoyalty = MIN_RECRUIT_LOYALTY + townPtr->recruit_dec_loyalty(raceId, 0);
 
 		//--- if cannot recruit because of low loyalty, reward the town people now ---//

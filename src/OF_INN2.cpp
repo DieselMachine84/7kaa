@@ -102,20 +102,8 @@ int FirmInn::think_hire_spy()
 {
 	Nation* ownNation = nation_array[nation_recno];
 
-	//DieselMachine
-	if( ownNation->total_spy_count > ownNation->total_population * (10+ownNation->pref_spy/10) / 100 )		// 10% to 20%
+	if( !ownNation->ai_should_spend(ownNation->pref_spy/2) )
 		return 0;
-
-	if( !ownNation->ai_should_spend(ownNation->pref_spy/2) )		// 0 to 50
-		return 0;
-
-	//--- the expense of spies should not be too large ---//
-
-	if( ownNation->expense_365days(EXPENSE_SPY) >
-		 ownNation->expense_365days() * (50+ownNation->pref_spy) / 400 )
-	{
-		return 0;
-	}
 
 	//--------------------------------------------//
 
@@ -166,7 +154,6 @@ int FirmInn::think_assign_spy_to(int raceId, int innUnitRecno)
 			{
 				//--- current resistance == target resistance if we don't have any spies in the town ---//
 
-				//DieselMachine TODO bug here
 				if( townPtr->race_target_resistance_array[j][nation_recno-1] ==
 					 townPtr->race_resistance_array[j][nation_recno-1] )
 				{
@@ -223,7 +210,7 @@ int FirmInn::think_assign_general_to(int raceId, int innUnitRecno)
 {
 	InnUnit* innUnit = inn_unit_array+innUnitRecno-1;
 	Nation*  ownNation = nation_array[nation_recno];
-	int		curRating, bestRating=30;		// the new one needs to be at least 30 points better than the existing one
+	int		curRating, bestRating=10;		// the new one needs to be at least 10 points better than the existing one
 	FirmCamp *firmCamp, *bestCamp=NULL;
 
 	//----- think about which camp to move to -----//

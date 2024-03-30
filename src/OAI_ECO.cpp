@@ -31,8 +31,6 @@
 
 void Nation::think_reduce_expense()
 {
-	return;
-
 	if( true_profit_365days() > 0 || cash > 5000 * pref_cash_reserve / 100 )
 		return;
 
@@ -89,7 +87,7 @@ int Nation::ai_should_spend(int importanceRating, float spendAmt)
 		return 0;
 
 	float fixedExpense = fixed_expense_365days();
-	float stdCashLevel = MAX(fixedExpense,2000) * (150+pref_cash_reserve) / 100;  //from 3000 to 5000
+	float stdCashLevel = MAX(fixedExpense,2000) * (150+pref_cash_reserve) / 100;
 	float trueProfit = true_profit_365days();
 
 	//----- if we are losing money, don't spend on non-important things -----//
@@ -102,7 +100,7 @@ int Nation::ai_should_spend(int importanceRating, float spendAmt)
 
 	//--------------------------------------//
 
-	float curCashLevel = 100 * (cash-spendAmt) / (stdCashLevel*2);  //cash = 0 means 0, cash = (from 6000 to 10000) means 100
+	float curCashLevel = 100 * (cash-spendAmt) / (stdCashLevel*2);
 
 	return importanceRating >= (100-curCashLevel);
 }
@@ -122,7 +120,7 @@ int Nation::ai_should_spend_war(int enemyMilitaryRating, int considerCeaseFire)
 {
 	int importanceRating = 30 + pref_military_development/5;		// 30 to 50
 
-	importanceRating += military_rank_rating() - enemyMilitaryRating / 2;
+	importanceRating += military_rank_rating() - enemyMilitaryRating*2;
 
 	if( considerCeaseFire )    	// only when we are very powerful, we will start a battle. So won't cease fire too soon after declaring war
 		importanceRating += 20;		// less eary to return 0, for cease fire

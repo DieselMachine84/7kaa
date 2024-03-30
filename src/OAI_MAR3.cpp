@@ -101,8 +101,6 @@ int Nation::ai_settle_to_region(int destXLoc, int destYLoc, int seaActionId)
 
 		if( bestTown->recruitable_race_pop( raceId, 1 ) )
 		{
-			if( !bestTown->can_recruit(raceId) )
-				break;
 			unitRecno = bestTown->recruit(-1, raceId, COMMAND_AI);
 
 			if( !unitRecno )		// no space for new unit 

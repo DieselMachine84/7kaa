@@ -21,7 +21,6 @@
 //Filename   : OAI_GRAN.CPP
 //Description: AI grand plans
 
-#include <vector>
 #include <OCONFIG.h>
 #include <OTALKRES.h>
 #include <ORACERES.h>
@@ -40,8 +39,6 @@ void Nation::think_grand_plan()
 	think_against_mine_monopoly();
 
 	think_ally_against_big_enemy();
-
-	think_attack_enemy_firm();
 }
 //------ End of function Nation::think_grand_plan ------//
 
@@ -210,9 +207,8 @@ void Nation::think_deal_with_all_enemy()
 			if( think_eliminate_enemy_firm(i) )
 				continue;
 
-			//enemy towns should be captured
-			//if( think_eliminate_enemy_town(i) )
-				//continue;
+			if( think_eliminate_enemy_town(i) )
+				continue;
 
 			think_eliminate_enemy_unit(i);
 			continue;
@@ -376,8 +372,6 @@ int Nation::think_surrender()
 //
 int Nation::think_unite_against_big_enemy()
 {
-	return 0;
-
 	if( info.game_date - info.game_start_date <
 		 365 * 3 * (100+pref_military_development) / 100 )		// only do this after 3 to 6 years into the game
 	{
@@ -509,7 +503,7 @@ int Nation::think_eliminate_enemy_town(int enemyNationRecno)
 {
 	//---- look for enemy firms to attack ----//
 
-	//int  hasWar;
+	int  hasWar;
 	Town *townPtr;
 
 	for( int i=town_array.size() ; i>0 ; i-- )
@@ -528,12 +522,17 @@ int Nation::think_eliminate_enemy_town(int enemyNationRecno)
 			continue;
 
 		//----- take into account of the mobile units around this town -----//
-		if (is_battle(townPtr->center_x, townPtr->center_y) > 0)
+
+		int mobileCombatLevel = mobile_defense_combat_level(townPtr->center_x, townPtr->center_y, townPtr->nation_recno, 1, hasWar);
+
+		if( mobileCombatLevel == -1 )		// do not attack this town because a battle is already going on
 			continue;
 
-		int enemyCombatLevel = ai_evaluate_target_combat_level(townPtr->center_x, townPtr->center_y, townPtr->nation_recno);
+		//---- calculate the combat level of this target town ----//
 
-		return ai_attack_target(townPtr->loc_x1, townPtr->loc_y1, enemyCombatLevel);
+		int townCombatLevel = townPtr->protection_available();
+
+		return ai_attack_target(townPtr->loc_x1, townPtr->loc_y1, mobileCombatLevel + townCombatLevel);
 	}
 
 	return 0;
@@ -550,7 +549,7 @@ int Nation::think_eliminate_enemy_firm(int enemyNationRecno)
 {
 	//---- look for enemy firms to attack ----//
 
-	//int  hasWar;
+	int  hasWar;
 	Firm *firmPtr;
 
 	for( int i=firm_array.size() ; i>0 ; i-- )
@@ -570,12 +569,21 @@ int Nation::think_eliminate_enemy_firm(int enemyNationRecno)
 
 		//----- take into account of the mobile units around this town -----//
 
-		if (is_battle(firmPtr->center_x, firmPtr->center_y) > 0)
+		int mobileCombatLevel = mobile_defense_combat_level(firmPtr->center_x, firmPtr->center_y, firmPtr->nation_recno, 1, hasWar);
+
+		if( mobileCombatLevel == -1 )		// do not attack this town because a battle is already going on
 			continue;
+	
+		//---- calculate the combat level of this target firm ----//
 
-		int enemyCombatLevel = ai_evaluate_target_combat_level(firmPtr->center_x, firmPtr->center_y, firmPtr->nation_recno);
+		int firmCombatLevel;
 
-		return ai_attack_target(firmPtr->loc_x1, firmPtr->loc_y1, enemyCombatLevel);
+		if( firmPtr->firm_id == FIRM_CAMP )                              		// other civilian firms
+			firmCombatLevel = ((FirmCamp*)firmPtr)->total_combat_level();
+		else
+			firmCombatLevel = firmPtr->worker_count * 10;		// civilian firms have very low combat level
+
+		return ai_attack_target(firmPtr->loc_x1, firmPtr->loc_y1, mobileCombatLevel + firmCombatLevel);
 	}
 	
 	return 0;
@@ -591,7 +599,7 @@ int Nation::think_eliminate_enemy_firm(int enemyNationRecno)
 int Nation::think_eliminate_enemy_unit(int enemyNationRecno)
 {
 	Unit *unitPtr;
-	//int  hasWar;
+	int  hasWar;
 
 	for( int i=unit_array.size() ; i>0 ; i-- )
 	{
@@ -613,12 +621,12 @@ int Nation::think_eliminate_enemy_unit(int enemyNationRecno)
 
 		//----- take into account of the mobile units around this town -----//
 
-		if (is_battle(unitPtr->next_x_loc(), unitPtr->next_y_loc()) > 0)
+		int mobileCombatLevel = mobile_defense_combat_level(unitPtr->next_x_loc(), unitPtr->next_y_loc(), unitPtr->nation_recno, 1, hasWar);
+
+		if( mobileCombatLevel == -1 )		// do not attack this town because a battle is already going on
 			continue;
 
-		int enemyCombatLevel = ai_evaluate_target_combat_level(unitPtr->next_x_loc(), unitPtr->next_y_loc(), unitPtr->nation_recno);
-
-		return ai_attack_target(unitPtr->next_x_loc(), unitPtr->next_y_loc(), enemyCombatLevel);
+		return ai_attack_target(unitPtr->next_x_loc(), unitPtr->next_y_loc(), mobileCombatLevel + (int) unitPtr->unit_power());
 	}
 
 	return 0;
@@ -694,7 +702,7 @@ int Nation::think_ally_against_big_enemy()
 
 	NationRelation* nationRelation = get_relation(enemyNationRecno);
 
-	if( nationRelation->ai_relation_level > 20 )
+	if( nationRelation->ai_relation_level > 30 )
 	{
 		int talkId;
 
@@ -816,50 +824,60 @@ int Nation::ai_has_enough_food()
 //
 // Think about attacking a specific type of firm of a specific enemy.
 //
-int Nation::think_attack_enemy_firm()
+int Nation::think_attack_enemy_firm(int enemyNationRecno, int firmId)
 {
-	if( config.ai_aggressiveness < OPTION_HIGH )
+	if( !largest_town_recno )
 		return 0;
 
-	std::vector<short> firmsToAttack;
-	for (int i = 0; i < firm_array.size(); i++)
+	Town*   ourLargestTown = town_array[largest_town_recno];
+	Nation  *nationPtr = nation_array[enemyNationRecno];
+	Firm    *firmPtr, *targetFirm=NULL;
+	int     curRating, bestRating=0, targetCombatLevel, hasWar;
+
+	for( int i=firm_array.size() ; i>0 ; i-- )
 	{
-		if (firm_array.is_deleted(i))
+		if( firm_array.is_deleted(i) )
 			continue;
 
-		Firm* firmPtr = firm_array[i];
-		if (firmPtr->nation_recno == nation_recno || firmPtr->nation_recno == 0)
-			continue;
+		firmPtr = firm_array[i];
 
-		if (nation_array[firmPtr->nation_recno]->is_ai())
-			continue;
-
-		if (get_relation_status(firmPtr->nation_recno) != NATION_HOSTILE)
-			continue;
-
-		bool linkedToTown = false;
-		for (int j = 0; j < firmPtr->linked_town_count; j++)
+		if( firmPtr->firm_id != firmId ||
+			 firmPtr->nation_recno != enemyNationRecno )
 		{
-			Town* linkedTown = town_array[firmPtr->linked_town_array[j]];
-			if (linkedTown->nation_recno == firmPtr->nation_recno)
-			{
-				linkedToTown = true;
-				break;
-			}
-		}
-		if (linkedToTown)
 			continue;
+		}
 
-		firmsToAttack.push_back(i);
+		int combatLevel = enemy_firm_combat_level(firmPtr, 1, hasWar);
+
+		if( combatLevel==0 )		// no protection with this mine
+		{
+			targetFirm = firmPtr;
+			targetCombatLevel = combatLevel;
+			break;
+		}
+
+		curRating = world.distance_rating( firmPtr->center_x, firmPtr->center_y,
+						ourLargestTown->center_x, ourLargestTown->center_y );
+
+		curRating += 1000 - combatLevel/5;
+
+		if( curRating > bestRating )
+		{
+			bestRating = curRating;
+			targetFirm = firmPtr;
+			targetCombatLevel = combatLevel;
+		}
 	}
 
-	if (firmsToAttack.size() == 0)
+	if( !targetFirm )
 		return 0;
 
-	short targetRecno = firmsToAttack[misc.random(firmsToAttack.size())];
-	Firm* targetFirm = firm_array[targetRecno];
-	int targetCombatLevel = ai_evaluate_target_combat_level(targetFirm->loc_x1, targetFirm->loc_y1, targetFirm->nation_recno);
-	return ai_attack_target(targetFirm->loc_x1, targetFirm->loc_y1, targetCombatLevel, 0, 0, 0, 0);
+	//---------------------------------------------//
+
+	int useAllCamp=1;
+
+	return ai_attack_target( targetFirm->loc_x1, targetFirm->loc_y1,
+									 targetCombatLevel, 0, 0, 0, 0, useAllCamp );
 }
 //------ End of function Nation::think_attack_enemy_firm ------//
 
@@ -992,8 +1010,11 @@ int Nation::think_against_mine_monopoly()
 
 		//--------------------------------------------//
 
-		int targetCombatLevel = ai_evaluate_target_combat_level(firmPtr->center_x, firmPtr->center_y, firmPtr->nation_recno);
-		return ai_attack_target( firmPtr->loc_x1, firmPtr->loc_y1, targetCombatLevel, 0, 0, 0, 1 );		// 1-use all camps
+		int hasWar;
+		int targetCombatLevel = enemy_firm_combat_level(firmPtr, 1, hasWar);
+
+		return ai_attack_target( firmPtr->loc_x1, firmPtr->loc_y1,
+										 targetCombatLevel, 0, 0, 0, 0, 1 );		// 1-use all camps
 	}
 
 	return 0;
