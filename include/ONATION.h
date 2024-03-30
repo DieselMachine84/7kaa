@@ -436,10 +436,12 @@ public:
 	int 			think_attack_town();
 	int			think_close_camp();
 
-	int 			ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLevel, int defenseMode=0, int justMoveToFlag=0, int attackerMinCombatLevel=0, int attackerCampRecno=0, int useAllCamp=0);
+	int 			ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLevel, int justMoveToFlag=0, int attackerMinCombatLevel=0, int attackerCampRecno=0, int useAllCamp=0);
 	void 			ai_attack_target_sync();
 	void 			ai_attack_target_execute(int directAttack);
 	int 			ai_attack_order_nearby_mobile(int targetXLoc, int targetYLoc, int targetCombatLevel);
+	void			ai_collect_military_force(int targetXLoc, int targetYLoc, int targetRecno, std::vector<int>& camps, std::vector<int>& units, std::vector<int>& ourUnits);
+	int 			ai_evaluate_target_combat_level(int targetXLoc, int targetYLoc, int targetRecno);
 
 	int 			ai_sea_attack_target(int targetXLoc, int targetYLoc);
 
