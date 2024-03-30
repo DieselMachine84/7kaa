@@ -512,6 +512,10 @@ void Battle::create_pregame_object()
 
 		if( config.start_up_has_mine_nearby && !nationPtr->is_ai() )
 			site_array.create_raw_site(0, townRecno);
+
+		//------ set ai base town -----//
+		if( nationPtr->is_ai() )
+			nationPtr->update_ai_region();
 	}
 
 	//--- if there is no space for creating new town/firm or unit, delete the unprocessed nations ---//
