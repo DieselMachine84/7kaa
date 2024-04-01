@@ -503,7 +503,6 @@ int Nation::think_eliminate_enemy_town(int enemyNationRecno)
 {
 	//---- look for enemy firms to attack ----//
 
-	int  hasWar;
 	Town *townPtr;
 
 	for( int i=town_array.size() ; i>0 ; i-- )
@@ -523,16 +522,12 @@ int Nation::think_eliminate_enemy_town(int enemyNationRecno)
 
 		//----- take into account of the mobile units around this town -----//
 
-		int mobileCombatLevel = mobile_defense_combat_level(townPtr->center_x, townPtr->center_y, townPtr->nation_recno, 1, hasWar);
-
-		if( mobileCombatLevel == -1 )		// do not attack this town because a battle is already going on
+		if (is_battle(townPtr->center_x, townPtr->center_y) > 0)
 			continue;
 
-		//---- calculate the combat level of this target town ----//
+		int enemyCombatLevel = ai_evaluate_target_combat_level(townPtr->center_x, townPtr->center_y, townPtr->nation_recno);
 
-		int townCombatLevel = townPtr->protection_available();
-
-		return ai_attack_target(townPtr->loc_x1, townPtr->loc_y1, mobileCombatLevel + townCombatLevel);
+		return ai_attack_target(townPtr->loc_x1, townPtr->loc_y1, enemyCombatLevel);
 	}
 
 	return 0;
@@ -549,7 +544,6 @@ int Nation::think_eliminate_enemy_firm(int enemyNationRecno)
 {
 	//---- look for enemy firms to attack ----//
 
-	int  hasWar;
 	Firm *firmPtr;
 
 	for( int i=firm_array.size() ; i>0 ; i-- )
@@ -569,21 +563,12 @@ int Nation::think_eliminate_enemy_firm(int enemyNationRecno)
 
 		//----- take into account of the mobile units around this town -----//
 
-		int mobileCombatLevel = mobile_defense_combat_level(firmPtr->center_x, firmPtr->center_y, firmPtr->nation_recno, 1, hasWar);
-
-		if( mobileCombatLevel == -1 )		// do not attack this town because a battle is already going on
+		if (is_battle(firmPtr->center_x, firmPtr->center_y) > 0)
 			continue;
-	
-		//---- calculate the combat level of this target firm ----//
 
-		int firmCombatLevel;
+		int enemyCombatLevel = ai_evaluate_target_combat_level(firmPtr->center_x, firmPtr->center_y, firmPtr->nation_recno);
 
-		if( firmPtr->firm_id == FIRM_CAMP )                              		// other civilian firms
-			firmCombatLevel = ((FirmCamp*)firmPtr)->total_combat_level();
-		else
-			firmCombatLevel = firmPtr->worker_count * 10;		// civilian firms have very low combat level
-
-		return ai_attack_target(firmPtr->loc_x1, firmPtr->loc_y1, mobileCombatLevel + firmCombatLevel);
+		return ai_attack_target(firmPtr->loc_x1, firmPtr->loc_y1, enemyCombatLevel);
 	}
 	
 	return 0;
@@ -599,7 +584,6 @@ int Nation::think_eliminate_enemy_firm(int enemyNationRecno)
 int Nation::think_eliminate_enemy_unit(int enemyNationRecno)
 {
 	Unit *unitPtr;
-	int  hasWar;
 
 	for( int i=unit_array.size() ; i>0 ; i-- )
 	{
@@ -621,12 +605,12 @@ int Nation::think_eliminate_enemy_unit(int enemyNationRecno)
 
 		//----- take into account of the mobile units around this town -----//
 
-		int mobileCombatLevel = mobile_defense_combat_level(unitPtr->next_x_loc(), unitPtr->next_y_loc(), unitPtr->nation_recno, 1, hasWar);
-
-		if( mobileCombatLevel == -1 )		// do not attack this town because a battle is already going on
+		if (is_battle(unitPtr->next_x_loc(), unitPtr->next_y_loc()) > 0)
 			continue;
 
-		return ai_attack_target(unitPtr->next_x_loc(), unitPtr->next_y_loc(), mobileCombatLevel + (int) unitPtr->unit_power());
+		int enemyCombatLevel = ai_evaluate_target_combat_level(unitPtr->next_x_loc(), unitPtr->next_y_loc(), unitPtr->nation_recno);
+
+		return ai_attack_target(unitPtr->next_x_loc(), unitPtr->next_y_loc(), enemyCombatLevel);
 	}
 
 	return 0;
@@ -1010,11 +994,8 @@ int Nation::think_against_mine_monopoly()
 
 		//--------------------------------------------//
 
-		int hasWar;
-		int targetCombatLevel = enemy_firm_combat_level(firmPtr, 1, hasWar);
-
-		return ai_attack_target( firmPtr->loc_x1, firmPtr->loc_y1,
-										 targetCombatLevel, 0, 0, 0, 0, 1 );		// 1-use all camps
+		int targetCombatLevel = ai_evaluate_target_combat_level(firmPtr->center_x, firmPtr->center_y, firmPtr->nation_recno);
+		return ai_attack_target( firmPtr->loc_x1, firmPtr->loc_y1, targetCombatLevel, 0, 0, 0, 1 );		// 1-use all camps
 	}
 
 	return 0;
