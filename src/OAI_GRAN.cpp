@@ -376,6 +376,8 @@ int Nation::think_surrender()
 //
 int Nation::think_unite_against_big_enemy()
 {
+	return 0;
+
 	if( info.game_date - info.game_start_date <
 		 365 * 3 * (100+pref_military_development) / 100 )		// only do this after 3 to 6 years into the game
 	{
