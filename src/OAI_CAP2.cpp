@@ -306,7 +306,7 @@ Town* Nation::think_capture_enemy_town_target(Town* capturerTown)
 
 		//----- if this town does not have any linked camps, capture this town immediately -----//
 
-		if( targetTown->has_linked_camp(targetTown->nation_recno, 0) )		//0-count both camps with or without overseers
+		if( !targetTown->has_linked_camp(targetTown->nation_recno, 0) )		//0-count both camps with or without overseers
 			return targetTown;
 
 		//--- if the enemy is very powerful overall, don't attack it yet ---//
