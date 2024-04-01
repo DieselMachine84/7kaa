@@ -477,7 +477,7 @@ int Nation::is_battle(int targetXLoc, int targetYLoc)
 //					  combat level.
 ///		        return -1 if there is war and returnIfWar is 1
 //
-int Nation::enemy_town_combat_level(Town* targetTown, int returnIfWar, int& hasWar)
+/*int Nation::enemy_town_combat_level(Town* targetTown, int returnIfWar, int& hasWar)
 {
 	int enemyCombatLevel = mobile_defense_combat_level(targetTown->center_x, targetTown->center_y, targetTown->nation_recno, returnIfWar, hasWar);		//0-don't return even there are wars around the town
 
@@ -501,7 +501,7 @@ int Nation::enemy_town_combat_level(Town* targetTown, int returnIfWar, int& hasW
 		{
 			enemyCombatLevel += ((FirmCamp*)firmPtr)->total_combat_level();
 		}
-	}
+	}*/
 /*
 	//----- add this and neighbor town's needed combat level ----//
 
@@ -515,8 +515,8 @@ int Nation::enemy_town_combat_level(Town* targetTown, int returnIfWar, int& hasW
 			enemyCombatLevel += townPtr->jobless_population * 5;
 	}
 */
-	return enemyCombatLevel;
-}
+	//return enemyCombatLevel;
+//}
 //-------- End of function Nation::enemy_town_combat_level ------//
 
 
@@ -530,7 +530,7 @@ int Nation::enemy_town_combat_level(Town* targetTown, int returnIfWar, int& hasW
 //					  combat level.
 ///		        return -1 if there is war and returnIfWar is 1
 //
-int Nation::enemy_firm_combat_level(Firm* targetFirm, int returnIfWar, int& hasWar)
+/*int Nation::enemy_firm_combat_level(Firm* targetFirm, int returnIfWar, int& hasWar)
 {
 	int enemyCombatLevel = mobile_defense_combat_level(targetFirm->center_x, targetFirm->center_y, targetFirm->nation_recno, returnIfWar, hasWar);		//0-don't return even there are wars around the town
 
@@ -567,7 +567,7 @@ int Nation::enemy_firm_combat_level(Firm* targetFirm, int returnIfWar, int& hasW
 	}
 
 	return enemyCombatLevel;
-}
+}*/
 //-------- End of function Nation::enemy_firm_combat_level ------//
 
 
@@ -591,7 +591,7 @@ int Nation::enemy_firm_combat_level(Firm* targetFirm, int returnIfWar, int& hasW
 //          -1  don't attack this town because a battle is already
 //              going on.
 //
-int Nation::mobile_defense_combat_level(int targetXLoc, int targetYLoc, int targetNationRecno, int returnIfWar, int& hasWar)
+/*int Nation::mobile_defense_combat_level(int targetXLoc, int targetYLoc, int targetNationRecno, int returnIfWar, int& hasWar)
 {
 	//--- the scanning distance is determined by the AI aggressiveness setting ---//
 
@@ -670,6 +670,6 @@ int Nation::mobile_defense_combat_level(int targetXLoc, int targetYLoc, int targ
 		return 0;
 	else
 		return (int) totalCombatLevel;
-}
+}*/
 //-------- End of function Nation::mobile_defense_combat_level ------//
 
