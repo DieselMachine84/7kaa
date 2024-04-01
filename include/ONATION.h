@@ -37,6 +37,8 @@
 #include <OTOWN.h>
 #endif
 
+#include <vector>
+
 //--------- define parameters ----------//
 
 #define  MAX_AI_REGION				20
@@ -491,13 +493,13 @@ public:
 	int 			capture_build_camp(int townRecno, int raceId, int captureUnitRecno);
 	int 			find_best_capturer(int townRecno, int raceId, int& bestResistanceReduce);
 	int 			hire_best_capturer(int townRecno, int raceId);
-	int			mobilize_capturer(int unitRecno);
+	int 			mobilize_capturer(int unitRecno);
 
 	int 			think_capture_new_enemy_town(Town* capturerTown, int useAllCamp=0);
 	void 			think_capturing_enemy_town();
 
 	int 			attack_enemy_town_defense(Town* targetTown, int useAllCamp=0);
-	Town* 		think_capture_enemy_town_target(Town* capturerTown);
+	Town* 			think_capture_enemy_town_target(Town* capturerTown);
 	//int 			enemy_town_combat_level(Town* targetTown, int returnIfWar, int& hasWar);
 	//int 			enemy_firm_combat_level(Firm* targetFirm, int returnIfWar, int& hasWar);
 	//int 			mobile_defense_combat_level(int targetXLoc, int targetYLoc, int targetNationRecno, int returnIfWar, int& hasWar);
@@ -574,7 +576,7 @@ public:
 	int 			think_eliminate_enemy_firm(int enemyNationRecno);
 	int 			think_eliminate_enemy_unit(int enemyNationRecno);
 
-	int 			think_attack_enemy_firm(int enemyNationRecno, int firmId);
+	int 			think_attack_enemy_firm();
 	int 			think_surrender();
 
 	int 			ai_surrender_to_rating(int nationRecno);

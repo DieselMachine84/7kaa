@@ -39,6 +39,8 @@ void Nation::think_grand_plan()
 	think_against_mine_monopoly();
 
 	think_ally_against_big_enemy();
+
+	think_attack_enemy_firm();
 }
 //------ End of function Nation::think_grand_plan ------//
 
@@ -808,60 +810,50 @@ int Nation::ai_has_enough_food()
 //
 // Think about attacking a specific type of firm of a specific enemy.
 //
-int Nation::think_attack_enemy_firm(int enemyNationRecno, int firmId)
+int Nation::think_attack_enemy_firm()
 {
-	if( !largest_town_recno )
+	if( config.ai_aggressiveness < OPTION_HIGH )
 		return 0;
 
-	Town*   ourLargestTown = town_array[largest_town_recno];
-	Nation  *nationPtr = nation_array[enemyNationRecno];
-	Firm    *firmPtr, *targetFirm=NULL;
-	int     curRating, bestRating=0, targetCombatLevel, hasWar;
-
-	for( int i=firm_array.size() ; i>0 ; i-- )
+	std::vector<short> firmsToAttack;
+	for (int i = firm_array.size(); i > 0; i--)
 	{
-		if( firm_array.is_deleted(i) )
+		if (firm_array.is_deleted(i))
 			continue;
 
-		firmPtr = firm_array[i];
-
-		if( firmPtr->firm_id != firmId ||
-			 firmPtr->nation_recno != enemyNationRecno )
-		{
+		Firm* firmPtr = firm_array[i];
+		if (firmPtr->nation_recno == nation_recno || firmPtr->nation_recno == 0)
 			continue;
-		}
 
-		int combatLevel = enemy_firm_combat_level(firmPtr, 1, hasWar);
+		if (nation_array[firmPtr->nation_recno]->is_ai())
+			continue;
 
-		if( combatLevel==0 )		// no protection with this mine
+		if (get_relation_status(firmPtr->nation_recno) != NATION_HOSTILE)
+			continue;
+
+		bool linkedToTown = false;
+		for (int j = 0; j < firmPtr->linked_town_count; j++)
 		{
-			targetFirm = firmPtr;
-			targetCombatLevel = combatLevel;
-			break;
+			Town* linkedTown = town_array[firmPtr->linked_town_array[j]];
+			if (linkedTown->nation_recno == firmPtr->nation_recno)
+			{
+				linkedToTown = true;
+				break;
+			}
 		}
+		if (linkedToTown)
+			continue;
 
-		curRating = world.distance_rating( firmPtr->center_x, firmPtr->center_y,
-						ourLargestTown->center_x, ourLargestTown->center_y );
-
-		curRating += 1000 - combatLevel/5;
-
-		if( curRating > bestRating )
-		{
-			bestRating = curRating;
-			targetFirm = firmPtr;
-			targetCombatLevel = combatLevel;
-		}
+		firmsToAttack.push_back(i);
 	}
 
-	if( !targetFirm )
+	if (firmsToAttack.size() == 0)
 		return 0;
 
-	//---------------------------------------------//
-
-	int useAllCamp=1;
-
-	return ai_attack_target( targetFirm->loc_x1, targetFirm->loc_y1,
-									 targetCombatLevel, 0, 0, 0, 0, useAllCamp );
+	short targetRecno = firmsToAttack[misc.random(firmsToAttack.size())];
+	Firm* targetFirm = firm_array[targetRecno];
+	int targetCombatLevel = ai_evaluate_target_combat_level(targetFirm->loc_x1, targetFirm->loc_y1, targetFirm->nation_recno);
+	return ai_attack_target(targetFirm->loc_x1, targetFirm->loc_y1, targetCombatLevel, 0, 0, 0, 0);
 }
 //------ End of function Nation::think_attack_enemy_firm ------//
 
