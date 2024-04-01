@@ -80,8 +80,10 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 		err_when (firm_array[leadAttackCampRecno]->nation_recno != nation_recno);
 		err_when (firm_array[leadAttackCampRecno]->firm_id != FIRM_CAMP);
 
+		FirmCamp* firmCamp = (FirmCamp*)firm_array[leadAttackCampRecno];
 		attack_camp_array[attack_camp_count].firm_recno = leadAttackCampRecno;
-		attack_camp_array[attack_camp_count].combat_level = ((FirmCamp*)firm_array[leadAttackCampRecno])->total_combat_level();
+		attack_camp_array[attack_camp_count].combat_level = firmCamp->total_combat_level();
+		attack_camp_array[attack_camp_count].distance = misc.points_distance(firmCamp->center_x, firmCamp->center_y, targetXLoc, targetYLoc);
 		attack_camp_count++;
 	}
 
