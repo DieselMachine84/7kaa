@@ -21,6 +21,7 @@
 //Filename   : OAI_GRAN.CPP
 //Description: AI grand plans
 
+#include <vector>
 #include <OCONFIG.h>
 #include <OTALKRES.h>
 #include <ORACERES.h>
@@ -209,8 +210,9 @@ void Nation::think_deal_with_all_enemy()
 			if( think_eliminate_enemy_firm(i) )
 				continue;
 
-			if( think_eliminate_enemy_town(i) )
-				continue;
+			//enemy towns should be captured
+			//if( think_eliminate_enemy_town(i) )
+				//continue;
 
 			think_eliminate_enemy_unit(i);
 			continue;
