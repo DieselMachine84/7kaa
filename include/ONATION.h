@@ -501,6 +501,7 @@ public:
 	int 			enemy_town_combat_level(Town* targetTown, int returnIfWar, int& hasWar);
 	int 			enemy_firm_combat_level(Firm* targetFirm, int returnIfWar, int& hasWar);
 	int 			mobile_defense_combat_level(int targetXLoc, int targetYLoc, int targetNationRecno, int returnIfWar, int& hasWar);
+	int 			is_battle(int targetXLoc, int targetYLoc);
 
 	int 			should_use_cash_to_capture();
 

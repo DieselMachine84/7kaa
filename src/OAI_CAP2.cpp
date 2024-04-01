@@ -413,6 +413,60 @@ Town* Nation::think_capture_enemy_town_target(Town* capturerTown)
 //-------- End of function Nation::think_capture_enemy_town_target ------//
 
 
+//-------- Begin of function Nation::is_battle ------//
+// Returns 0 is there is no battle
+//         1 - if there is battle
+//         2 - if our nation is involved in the battle
+int Nation::is_battle(int targetXLoc, int targetYLoc)
+{
+	//--- the scanning distance is determined by the AI aggressiveness setting ---//
+
+	int scanRangeX = 5 + config.ai_aggressiveness * 2;
+	int scanRangeY = scanRangeX;
+
+	int xLoc1 = targetXLoc - scanRangeX;
+	int yLoc1 = targetYLoc - scanRangeY;
+	int xLoc2 = targetXLoc + scanRangeX;
+	int yLoc2 = targetYLoc + scanRangeY;
+
+	xLoc1 = MAX( xLoc1, 0 );
+	yLoc1 = MAX( yLoc1, 0 );
+	xLoc2 = MIN( xLoc2, MAX_WORLD_X_LOC-1 );
+	yLoc2 = MIN( yLoc2, MAX_WORLD_Y_LOC-1 );
+
+	//------------------------------------------//
+
+	int isBattle = 0;
+
+	for (int yLoc = yLoc1; yLoc <= yLoc2; yLoc++)
+	{
+		Location* locPtr = world.get_loc(xLoc1, yLoc);
+
+		for (int xLoc = xLoc1; xLoc <= xLoc2; xLoc++, locPtr++ )
+		{
+			if( !locPtr->has_unit(UNIT_LAND) )
+				continue;
+
+			Unit* unitPtr = unit_array[locPtr->unit_recno(UNIT_LAND)];
+			if( unitPtr->cur_action == SPRITE_ATTACK )
+			{
+				if( unitPtr->nation_recno == nation_recno )
+				{
+					return 2;
+				}
+				else
+				{
+					isBattle = 1;
+				}
+			}
+		}
+	}
+
+	return isBattle;
+}
+//-------- End of function Nation::is_battle ------//
+
+
 //--------- Begin of function Nation::enemy_town_combat_level --------//
 //
 // <Town*> targetTown  - the target town
