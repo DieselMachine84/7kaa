@@ -156,6 +156,7 @@ struct ActionNode
 
 //------- Define struct AttackCamp --------//
 
+//DieselMachine TODO remove this limitation
 #define MAX_SUITABLE_ATTACK_CAMP    30    // total no. of useful camps
 
 #pragma pack(1)
@@ -456,7 +457,7 @@ public:
 	int 			think_attack_monster();
 	int 			think_monster_target(int& targetCombatLevel);
 
-	int			ai_should_expand_military();
+	int 			ai_should_expand_military();
 	int 			ai_is_troop_need_new_camp();
 	int 			ai_has_too_many_camp();
 
@@ -492,7 +493,7 @@ public:
 	int 			start_capture(int townRecno, int captureUnitRecno);
 	int 			capture_build_camp(int townRecno, int raceId, int captureUnitRecno);
 	int 			find_best_capturer(int townRecno, int raceId, int& bestResistanceReduce);
-	int 			hire_best_capturer(int townRecno, int raceId, int& targetResistance, bool hire)
+	int 			hire_best_capturer(int townRecno, int raceId, int& targetResistance, bool hire);
 	int 			mobilize_capturer(int unitRecno);
 
 	int 			think_capture_new_enemy_town(Town* capturerTown, int useAllCamp=0);
