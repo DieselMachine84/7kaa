@@ -113,6 +113,9 @@ int Nation::think_capture_independent()
 		if (numberOfTownsWeAlreadyCapturing >= 3 && townPtr->race_pop_array[townPtr->majority_race() - 1] != townPtr->population)	// do not capture too many villages
 			continue;
 
+		if (townPtr->race_pop_array[townPtr->majority_race() - 1] < 15)		// do not capture villages with low population
+			continue;
+
 		//------ only if we have a presence/a base town in this region -----//
 
 		if( !has_base_town_in_region(townPtr->region_id) )
