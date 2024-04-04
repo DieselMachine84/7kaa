@@ -356,7 +356,7 @@ int Nation::capture_build_camp(int townRecno, int raceId, int captureUnitRecno)
 //
 int Nation::find_best_capturer(int townRecno, int raceId, int& bestTargetResistance)
 {
-	#define MIN_CAPTURE_RESISTANCE_DEC 	20		// if we assign a unit as the commander, the minimum expected resistance decrease should be 20, otherwise we don't do it.
+	//#define MIN_CAPTURE_RESISTANCE_DEC 	20		// if we assign a unit as the commander, the minimum expected resistance decrease should be 20, otherwise we don't do it.
 
 	Unit* unitPtr;
 	Town* targetTown = town_array[townRecno];
@@ -394,6 +394,9 @@ int Nation::find_best_capturer(int townRecno, int raceId, int& bestTargetResista
 		if( unitPtr->unit_mode == UNIT_MODE_OVERSEE )
 		{
 			firmPtr = firm_array[unitPtr->unit_mode_para];
+
+			if (firmPtr->firm_id != FIRM_CAMP)		//Use generals only from forts
+				continue;
 
 			//--- check if the unit currently in a command base trying to take over an independent town ---//
 
