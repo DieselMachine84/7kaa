@@ -534,7 +534,7 @@ int Nation::hire_best_capturer(int townRecno, int raceId, int& targetResistance,
 	InnUnit *innUnit;
 	Skill		*innUnitSkill;
 	int		i, j, innUnitCount, curRating;
-	int		bestRating=0, bestInnRecno=0, bestInnUnitId=0;
+	int		bestRating=70, bestInnRecno=0, bestInnUnitId=0;
 	Town* 	townPtr = town_array[townRecno];
 	int		destRegionId = world.get_region_id(townPtr->loc_x1, townPtr->loc_y1);
 
