@@ -495,7 +495,7 @@ int Nation::mobilize_capturer(int unitRecno)
 
 			if( unitRecno )
 			{
-				add_action(townPtr->loc_x1, townPtr->loc_y1, -1, -1, ACTION_AI_ASSIGN_OVERSEER, FIRM_CAMP);
+				add_action(firmPtr->loc_x1, firmPtr->loc_y1, -1, -1, ACTION_AI_ASSIGN_OVERSEER, FIRM_CAMP);
 				break;
 			}
 		}
