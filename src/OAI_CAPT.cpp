@@ -237,18 +237,24 @@ int Nation::capture_expected_resistance(int townRecno, int *captureUnitRecno)
 	//---- see if there are general available for capturing this town ---//
 
 	int majorityRace = townPtr->majority_race();
-	int targetResistance;
+	int targetResistance = 100;
+	int bestCapturer = find_best_capturer(townRecno, majorityRace, /*out*/ targetResistance);
+	if (bestCapturer == 0)
+	{
+		bestCapturer = hire_best_capturer(townRecno, majorityRace, /*out*/ targetResistance, false);
+	}
 
-	*captureUnitRecno = find_best_capturer(townRecno, majorityRace, /*out*/ targetResistance);
-	if( !(*captureUnitRecno) )
-		return 100;
-
-	int resultResistance =
-		( targetResistance * townPtr->race_pop_array[majorityRace-1] +
-		  averageResistance * (townPtr->population - townPtr->race_pop_array[majorityRace-1]) )
-		/ townPtr->population;
-
-	return resultResistance;
+	if (bestCapturer != 0)
+	{
+		*captureUnitRecno = bestCapturer;
+		return ( targetResistance * townPtr->race_pop_array[majorityRace-1]
+			   + averageResistance * (townPtr->population - townPtr->race_pop_array[majorityRace-1]) )
+			/ townPtr->population;
+	}
+	else
+	{
+		return targetResistance;
+	}
 }
 //---------- End of function Nation::capture_expected_resistance ---------//
 
@@ -302,7 +308,7 @@ int Nation::capture_build_camp(int townRecno, int raceId, int captureUnitRecno)
 		unitRecno = find_best_capturer(townRecno, raceId, targetResistance);
 
 	if( !unitRecno )
-		unitRecno = hire_best_capturer(townRecno, raceId);
+		unitRecno = hire_best_capturer(townRecno, raceId, targetResistance, true);
 
 	if( !unitRecno )
 	{
@@ -513,10 +519,12 @@ int Nation::mobilize_capturer(int unitRecno)
 //
 // <int>  townRecno 			    - recno of the town to capture
 // <int>  raceId				    - race id. of the unit to hire
+// <int&> bestTargetResistance		- a reference var for returning the target resistance if the returned unit is assigned as the overseer
+// <bool> hire						- hire or just check if it exists
 //
 // return: <int> the recno of the unit hired.
 //
-int Nation::hire_best_capturer(int townRecno, int raceId)
+int Nation::hire_best_capturer(int townRecno, int raceId, int& targetResistance, bool hire)
 {
 	if( !ai_should_hire_unit(30) )		// 30 - importance rating
 		return 0;
@@ -529,6 +537,8 @@ int Nation::hire_best_capturer(int townRecno, int raceId)
 	int		bestRating=0, bestInnRecno=0, bestInnUnitId=0;
 	Town* 	townPtr = town_array[townRecno];
 	int		destRegionId = world.get_region_id(townPtr->loc_x1, townPtr->loc_y1);
+
+	targetResistance = 100;
 
 	for(i=0; i<ai_inn_count; i++)
 	{
@@ -581,16 +591,23 @@ int Nation::hire_best_capturer(int townRecno, int raceId)
 	if( !bestInnUnitId )
 		return 0;
 
+	int unitInfluence = bestRating * 2 / 3;		// 66% of the leadership
+	unitInfluence += (int)(reputation / 2.0);
+	unitInfluence = MIN(100, unitInfluence);
+	targetResistance = 100 - unitInfluence; 	// influence of this unit if he is assigned as a commander of a military camp
+
 	//----------------------------------------------------//
+	int unitRecno = 0;
+	if (hire)
+	{
+		firmInn = (FirmInn*) firm_array[bestInnRecno];
 
-	firmInn = (FirmInn*) firm_array[bestInnRecno];
+		unitRecno = firmInn->hire(bestInnUnitId);
+		if( !unitRecno )
+			return 0;
 
-	int unitRecno = firmInn->hire(bestInnUnitId);
-
-	if( !unitRecno )
-		return 0;
-
-	unit_array[unitRecno]->set_rank(RANK_GENERAL);
+		unit_array[unitRecno]->set_rank(RANK_GENERAL);
+	}
 
 	return unitRecno;
 }
