@@ -79,6 +79,21 @@ int Nation::think_capture_independent()
 	int 	townRecno;
 	Town* townPtr;
 
+	int numberOfTownsWeAlreadyCapturing = 0;
+	for (int firmRecno = firm_array.size(); firmRecno > 0; firmRecno--)
+	{
+		if (firm_array.is_deleted(firmRecno))
+			continue;
+
+		Firm* firmPtr = firm_array[firmRecno];
+		if (firmPtr->nation_recno != nation_recno || firmPtr->firm_id != FIRM_CAMP)
+			continue;
+
+		FirmCamp* campPtr = (FirmCamp*)firmPtr;
+		if (campPtr->ai_capture_town_recno)
+			numberOfTownsWeAlreadyCapturing++;
+	}
+
 	for(townRecno=town_array.size(); townRecno>0; townRecno--)
 	{
 		if(town_array.is_deleted(townRecno))
@@ -93,6 +108,9 @@ int Nation::think_capture_independent()
 			continue;
 
 		if( townPtr->rebel_recno )			// towns controlled by rebels will not drop in resistance even if a command base is present
+			continue;
+
+		if (numberOfTownsWeAlreadyCapturing >= 3 && townPtr->race_pop_array[townPtr->majority_race() - 1] != townPtr->population)	// do not capture too many villages
 			continue;
 
 		//------ only if we have a presence/a base town in this region -----//
