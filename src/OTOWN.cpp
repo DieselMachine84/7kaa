@@ -827,18 +827,6 @@ void Town::set_nation(int newNationRecno)
 	if( nation_recno && nation_array[nation_recno]->is_ai() )
 		think_capture_linked_firm();
 
-	//--- when a town change nation, call the AI function of call linked firms ---//
-
-	Firm* firmPtr;
-
-	for( i=0 ; i<linked_firm_count ; i++ )
-	{
-		firmPtr = firm_array[ linked_firm_array[i] ];
-
-		if( firmPtr->firm_ai )		// tell linked firms that this town has changed nation
-			firmPtr->think_linked_town_change_nation(town_recno, oldNationRecno, newNationRecno);
-	}
-
 	//------ set national auto policy -----//
 
 	if( nation_recno )
