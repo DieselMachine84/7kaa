@@ -110,6 +110,7 @@ public:
 	void 		change_nation(int newNationRecno);
 
 	void		update_defense_unit(short unitRecno);
+	void 		validate_patrol_unit();
 	void		set_employ_worker(char flag);
 
 	virtual	FirmCamp *cast_to_FirmCamp() { return this; };
@@ -139,7 +140,6 @@ private:
 	void 		pay_weapon_expense();
 
 	void 		update_influence();
-	void 		validate_patrol_unit();
 
 	//-------------- AI functions --------------//
 
