@@ -734,6 +734,22 @@ void FirmCamp::think_capture()
 		}
 	}
 
+	bool hasLinkedEnemyCamps = false;
+	for (int j = 0; j < targetTown->linked_firm_count; j++)
+	{
+		Firm* linkedFirm = firm_array[targetTown->linked_firm_array[j]];
+		if (linkedFirm->nation_recno != nation_recno && linkedFirm->firm_id == FIRM_CAMP)
+		{
+			hasLinkedEnemyCamps = true;
+			break;
+		}
+	}
+	//If no other kingdom tries to capture this village, we will wait
+	int averageResistance = targetTown->average_resistance(nation_recno);
+	int averageTargetResistance = targetTown->average_target_resistance(nation_recno);
+	if (!hasLinkedEnemyCamps && (averageResistance > 25 || averageResistance > averageTargetResistance))
+		return;
+
 	//------ send out troops to capture the target town now ----//
 
 	int rc;
