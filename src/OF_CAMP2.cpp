@@ -323,6 +323,20 @@ void FirmCamp::think_recruit()
 	if( patrol_unit_count )		// if there are units of this camp patrolling outside
 		return;
 
+	//Do not recruit if we are defending until battle ends
+	DefenseUnit* defPtr = defense_array;
+	bool defending = false;
+	for (int i = 0; i <= MAX_WORKER; i++, defPtr++)
+	{
+		if(defPtr->unit_recno != 0)
+		{
+			defending = true;
+			break;
+		}
+	}
+	if (defending)
+		return;
+
 	Nation* nationPtr = nation_array[nation_recno];
 
 	ai_recruiting_soldier = 1; 		// the AI is currently trying to recruit soldiers
