@@ -786,11 +786,6 @@ int FirmCamp::think_capture_target_town()
 	if( !linked_town_count || !overseer_recno )
 		return 0;
 
-	//--- if there are any units currently being assigned to this camp ---//
-
-	if( nation_array[nation_recno]->is_action_exist( loc_x1, loc_y1, -1, -1, ACTION_AI_ASSIGN_WORKER, FIRM_CAMP ) )
-		return 0;
-
 	//-- decide which town to attack (only when the camp is linked to more than one town ---//
 
 	int	curResistance, curTargetResistance, resistanceDec;
