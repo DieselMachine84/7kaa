@@ -856,7 +856,7 @@ int FirmCamp::ai_capture_independent_town(Town* targetTown, int defenseCombatLev
 
 	//---------- attack the target town now ----------//
 
-	if( nation_array[nation_recno]->ai_attack_target(targetTown->loc_x1, targetTown->loc_y1, defenseCombatLevel, 0, 0, 0, firm_recno) )
+	if( nation_array[nation_recno]->ai_attack_target(targetTown->loc_x1, targetTown->loc_y1, defenseCombatLevel, 0, 0, firm_recno) )
 		return 1;
 
 	return 0;
@@ -1032,7 +1032,7 @@ int FirmCamp::ai_capture_enemy_town(Town* targetTown, int defenseCombatLevel)
 	}
 
 	return nation_array[nation_recno]->ai_attack_target(targetTown->loc_x1, targetTown->loc_y1,
-			 defenseCombatLevel, 0, 0, 0, firm_recno, useAllCamp );
+			 defenseCombatLevel, 0, 0, firm_recno, useAllCamp );
 }
 //--------- End of function FirmCamp::ai_capture_enemy_town --------//
 
