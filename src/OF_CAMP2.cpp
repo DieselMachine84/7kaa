@@ -343,6 +343,7 @@ void FirmCamp::think_recruit()
 
 	//---- if there are currently units coming to this firm ----//
 
+	int realComingCount = 0;
 	if( coming_unit_count > 0 )
 	{
 		Unit* unitPtr;
@@ -359,14 +360,13 @@ void FirmCamp::think_recruit()
 			if( unitPtr->nation_recno == nation_recno &&
 				 unitPtr->action_mode == ACTION_ASSIGN_TO_FIRM )
 			{
-				//--- if so, do not do anything unit they are all done ---//
-
-				return;
+				realComingCount++;
 			}
 		}
-
-		coming_unit_count = 0;
 	}
+
+	if (realComingCount == 0)
+		coming_unit_count = 0;
 
 	//-- if this camp is empty, think about move a whole troop from a useless camp (should_ai_close()==1)
 
