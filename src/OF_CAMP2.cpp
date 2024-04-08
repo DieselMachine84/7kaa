@@ -1334,6 +1334,11 @@ void FirmCamp::think_change_town_link()
 //
 int FirmCamp::think_assign_better_commander()
 {
+	//--- we are capturing a village, there is a separate place to assign a better commander ---//
+
+	if (ai_capture_town_recno != 0)
+		return 0;
+
 	//----- if there is already an overseer being assigned to the camp ---//
 
 	Nation* ownNation = nation_array[nation_recno];
@@ -1343,6 +1348,7 @@ int FirmCamp::think_assign_better_commander()
 
 	//--- if there is already one existing ---//
 
+	//DieselMachine TODO: when we are moving the whole troop from alone standing fort there is no such action
 	if( actionRecno )
 	{
 		//--- if the action still is already being processed, don't bother with it ---//
@@ -1363,42 +1369,81 @@ int FirmCamp::think_assign_better_commander()
 
 	if( overseer_recno )
 	{
-		bestLeadership	= cur_commander_leadership(bestRaceId)
-							  + 10 + ownNation->pref_loyalty_concern/10;			// nations that have higher loyalty concern will not switch commander too frequently
+		bestLeadership = cur_commander_leadership(bestRaceId);
 	}
 
-	//--- locate for a soldier who has a higher leadership ---//
+	//--- first look for soldiers of the current fort ---//
+	workerPtr = worker_array;
 
-	for( int i=ownNation->ai_camp_count-1 ; i>=0 ; i-- )
+	for( int j=1 ; j<=worker_count ; j++, workerPtr++ )
 	{
-		firmPtr = firm_array[ ownNation->ai_camp_array[i] ];
-
-		if( firmPtr->region_id != region_id )
+		if( !workerPtr->race_id )
 			continue;
 
-		workerPtr = firmPtr->worker_array;
+		int workerLeadership = workerPtr->skill_level;
 
-		for( int j=1 ; j<=firmPtr->worker_count ; j++, workerPtr++ )
+		if( workerPtr->race_id != bestRaceId )
+			workerLeadership /= 2;
+
+		if( workerLeadership > bestLeadership )
 		{
-			if( !workerPtr->race_id )
+			bestLeadership = workerLeadership;
+			bestFirmRecno  = firm_recno;
+			bestWorkerId   = j;
+		}
+	}
+
+	if (bestFirmRecno == 0)
+	{
+		//--- locate for a soldier who has a higher leadership ---//
+		bestLeadership += 10 + ownNation->pref_loyalty_concern / 10; // nations that have higher loyalty concern will not switch commander too frequently
+
+		for( int i=ownNation->ai_camp_count-1 ; i>=0 ; i-- )
+		{
+			firmPtr = firm_array[ ownNation->ai_camp_array[i] ];
+
+			if( firmPtr->region_id != region_id )
 				continue;
 
-			int workerLeadership = workerPtr->skill_level;
+			workerPtr = firmPtr->worker_array;
 
-			if( workerPtr->race_id != bestRaceId )
-				workerLeadership /= 2;
-
-			if( workerLeadership > bestLeadership )
+			for( int j=1 ; j<=firmPtr->worker_count ; j++, workerPtr++ )
 			{
-				bestLeadership = workerLeadership;
-				bestFirmRecno  = firmPtr->firm_recno;
-				bestWorkerId   = j;
+				if( !workerPtr->race_id )
+					continue;
+
+				int workerLeadership = workerPtr->skill_level;
+
+				if( workerPtr->race_id != bestRaceId )
+					workerLeadership /= 2;
+
+				if( workerLeadership > bestLeadership )
+				{
+					bestLeadership = workerLeadership;
+					bestFirmRecno  = firmPtr->firm_recno;
+					bestWorkerId   = j;
+				}
 			}
 		}
 	}
 
 	if( bestFirmRecno == 0 )
+	{
+		if (overseer_recno != 0 && bestLeadership < 40)
+		{
+			Unit* unitCommander = unit_array[overseer_recno];
+			if (unitCommander->race_id != bestRaceId)
+			{
+				Nation* ourNation = nation_array[nation_recno];
+				int trainTownRecno = 0;
+				int newLeaderRecno = ourNation->train_unit(firm_skill_id, bestRaceId, loc_x1, loc_y1, trainTownRecno);
+				if (newLeaderRecno != 0)
+					return ourNation->add_action(loc_x1, loc_y1, -1, -1, ACTION_AI_ASSIGN_OVERSEER, FIRM_CAMP, 1, newLeaderRecno);
+			}
+		}
+
 		return 0;
+	}
 
 	//-------- assign the overseer now -------//
 
