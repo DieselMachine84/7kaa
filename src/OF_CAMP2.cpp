@@ -433,34 +433,13 @@ void FirmCamp::think_recruit()
 	if( !overseer_recno )
 		nationPtr->add_action(loc_x1, loc_y1, -1, -1, ACTION_AI_ASSIGN_OVERSEER, FIRM_CAMP);
 
-	//---- think about the no. of workers needed for this base ----//
-
-	int combatDiff;
-
-	if( overseer_recno == nationPtr->king_unit_recno )		// recruit as many soldiers as possible if the commander is the king
+	if (worker_count == MAX_WORKER)
 	{
-		combatDiff = 1000;
-	}
-	else if( nationPtr->total_jobless_population > 20 + (100-nationPtr->pref_military_development) / 3 )		// 20 to 53
-	{
-		combatDiff = 1000;		// recruit as many as possible
-	}
-	else
-	{
-		int combatLevelNeeded = ai_combat_level_needed();
-
-		combatDiff = combatLevelNeeded - total_combat_level();
+		ai_recruiting_soldier = 0;
+		return;
 	}
 
-	if( combatDiff > 0 )
-	{
-		ai_recruit(combatDiff);
-	}
-	else
-	{
-		if( overseer_recno )
-			ai_recruiting_soldier = 0;		// this firm has enough soldiers already
-	}
+	ai_recruit(0, realComingCount);  //first parameter is not used
 }
 //----------- End of function FirmCamp::think_recruit ----------//
 
