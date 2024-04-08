@@ -809,6 +809,21 @@ void Town::add_protection_camps(std::vector<short>& protectionCamps, bool minimu
 //-------- End of function Town::add_protection_camps ------//
 
 
+//-------- Begin of function Town::can_recruit_people ------//
+bool Town::can_recruit_people()
+{
+	if (population == MAX_TOWN_POPULATION)
+		return true;
+
+	Nation* ownNation = nation_array[nation_recno];
+	double prefRecruiting = 0.0;
+	if (ownNation->yearly_food_change() > 0)
+		prefRecruiting = (double)ownNation->pref_military_development + (100.0 - (double)ownNation->pref_inc_pop_by_growth);
+	return linked_camp_soldiers_count() <= (double)population * (4.0 + 4.0 * prefRecruiting / 200.0) / 20.0;
+}
+//-------- End of function Town::can_recruit_people ------//
+
+
 //-------- Begin of function Town::think_build_market ------//
 //
 int Town::think_build_market()

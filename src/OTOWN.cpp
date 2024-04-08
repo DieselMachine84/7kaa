@@ -3722,6 +3722,46 @@ int Town::linked_active_camp_count()
 //---------- End of function Town::linked_active_camp_count --------//
 
 
+//-------- Begin of function Town::linked_camp_soldiers_count ------//
+//
+// No. of soldiers in linked camps counted respect to other towns
+//
+double Town::linked_camp_soldiers_count()
+{
+	double townSoldiersCount = 0.0;
+	for (int firmIndex = 0; firmIndex < linked_firm_count; firmIndex++)
+	{
+		Firm* firmPtr = firm_array[linked_firm_array[firmIndex]];
+
+		if (firmPtr->nation_recno != nation_recno || firmPtr->firm_id != FIRM_CAMP)
+			continue;
+
+		FirmCamp* campPtr = (FirmCamp*)firmPtr;
+
+		double linkedTownsCount = 0.0;
+		for (int townIndex = 0; townIndex < campPtr->linked_town_count; townIndex++)
+		{
+			if(town_array.is_deleted(campPtr->linked_town_array[townIndex]))
+				continue;
+
+			Town* firmTownPtr = town_array[campPtr->linked_town_array[townIndex]];
+
+			if (firmTownPtr->nation_recno != nation_recno)
+				continue;
+
+			linkedTownsCount += 1.0;
+		}
+
+		if (linkedTownsCount > 0.0)
+		{
+			townSoldiersCount += (campPtr->worker_count + campPtr->patrol_unit_count + campPtr->coming_unit_count) / linkedTownsCount;
+		}
+	}
+	return townSoldiersCount;
+}
+//---------- End of function Town::linked_camp_soldiers_count --------//
+
+
 //------- Begin of function Town::auto_defense ---------//
 //
 void Town::auto_defense(short targetRecno)
