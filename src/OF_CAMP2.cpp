@@ -99,7 +99,7 @@ void FirmCamp::process_ai()
 
 	//----- think about changing links to foreign town -----//
 
-	if( info.game_date%30==firm_recno%30 )
+	if( info.game_date%5==firm_recno%5 )
 		think_change_town_link();
 
 	//------ think about attacking enemies nearby -------//
