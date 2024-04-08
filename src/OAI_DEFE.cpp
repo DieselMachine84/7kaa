@@ -113,7 +113,7 @@ int Nation::ai_defend(int attackerUnitRecno)
 					}
 					//remove this camp from the attack camps
 					firmCamp->is_attack_camp = 0;
-					misc.del_array_rec(attack_camp_array, attack_camp_count, sizeof(AttackCamp), i + 1);
+					misc.del_array_rec(attack_camp_array, attack_camp_count, sizeof(AttackCamp), j + 1);
 					attack_camp_count--;
 					break;
 				}
