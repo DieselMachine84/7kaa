@@ -543,6 +543,9 @@ int FirmCamp::ai_combat_level_needed()
 	{
 		townPtr = town_array[ linked_town_array[i] ];
 
+		if (townPtr->nation_recno == 0)
+			combatNeeded += 1000;
+
 		//------- this is its own town -------//
 
 		if( townPtr->nation_recno == nation_recno )
