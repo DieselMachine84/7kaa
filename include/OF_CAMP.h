@@ -168,6 +168,7 @@ private:
 
 	int 		think_assign_better_commander();
 	int 		best_commander_race();
+	void 		think_optimize_soldiers_race();
 };
 #pragma pack()
 

@@ -92,6 +92,11 @@ void FirmCamp::process_ai()
 	if( info.game_date%30==firm_recno%30 )
 		think_assign_better_commander();
 
+	//----- think about finding soldiers with the same race as general -----//
+
+	if( info.game_date%30==firm_recno%30 )
+		think_optimize_soldiers_race();
+
 	//----- think about changing links to foreign town -----//
 
 	if( info.game_date%30==firm_recno%30 )
@@ -1561,3 +1566,71 @@ int FirmCamp::best_commander_race()
 }
 //-------- End of function FirmCamp::best_commander_race ---------//
 
+
+//------- Begin of function FirmCamp::optimize_soldiers_race -------//
+void FirmCamp::think_optimize_soldiers_race()
+{
+	if (overseer_recno == 0)
+		return;
+
+	Unit* overseer = unit_array[overseer_recno];
+	Worker* workerPtr = worker_array;
+
+	bool hasSoldierOfDifferentRace = false;
+	for (int i = 0; i < worker_count; i++, workerPtr++)
+	{
+		if (workerPtr->race_id > 0 && workerPtr->race_id != overseer->race_id)
+		{
+			hasSoldierOfDifferentRace = true;
+			break;
+		}
+	}
+
+	if (!hasSoldierOfDifferentRace)
+		return;
+
+	FirmCamp* bestCampPtr = nullptr;
+	int bestWorkerId = -1;
+	int bestDistance = MAX_WORLD_X_LOC + MAX_WORLD_Y_LOC;
+	Nation* nationPtr = nation_array[nation_recno];
+	for (int i = nationPtr->ai_camp_count - 1; i >= 0; i--)
+	{
+		FirmCamp* firmCamp = (FirmCamp*) firm_array[nationPtr->ai_camp_array[i]];
+
+		if (firmCamp->region_id != region_id)
+			continue;
+
+		if (firmCamp->firm_recno == firm_recno)
+			continue;
+
+		if (firmCamp->overseer_recno != 0 && unit_array[firmCamp->overseer_recno]->race_id == overseer->race_id)
+			continue;
+
+		workerPtr = firmCamp->worker_array;
+		for (int j = 0; j < firmCamp->worker_count; j++, workerPtr++)
+		{
+			if (workerPtr->race_id == overseer->race_id)
+			{
+				int distance = misc.points_distance(center_x, center_y, firmCamp->center_x, firmCamp->center_y);
+				if (distance < bestDistance)
+				{
+					bestDistance = distance;
+					bestCampPtr = firmCamp;
+					bestWorkerId = j + 1;
+					break;
+				}
+			}
+		}
+	}
+
+	if (bestCampPtr != nullptr)
+	{
+		int unitRecno = bestCampPtr->mobilize_worker(bestWorkerId, COMMAND_AI);
+		if (unitRecno == 0)
+			return;
+
+		Unit* unitPtr = unit_array[unitRecno];
+		unitPtr->assign(loc_x1, loc_y1);
+	}
+}
+//-------- End of function FirmCamp::optimize_soldiers_race ---------//
