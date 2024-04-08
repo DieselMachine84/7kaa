@@ -439,7 +439,7 @@ void FirmCamp::think_recruit()
 		return;
 	}
 
-	ai_recruit(0, realComingCount);  //first parameter is not used
+	ai_recruit(realComingCount);  //first parameter is not used
 }
 //----------- End of function FirmCamp::think_recruit ----------//
 
@@ -450,14 +450,14 @@ void FirmCamp::think_recruit()
 //
 // return: <int> 1-succeeded, 0-failed.
 //
-int FirmCamp::ai_recruit(int recruitCombatLevel)
+int FirmCamp::ai_recruit(int realComingCount)
 {
 	if( worker_count == MAX_WORKER || !overseer_recno )
 		return 0;
 
-	int recruitCount = MAX( 1, recruitCombatLevel / 20 );
-
-	recruitCount = MIN( recruitCount, MAX_WORKER-worker_count );
+	int recruitCount = MAX_WORKER - worker_count - realComingCount;
+	if (recruitCount <= 0)
+		return 0;
 
 	//--- first try to recruit soldiers directly from a linked village ---//
 
@@ -471,6 +471,9 @@ int FirmCamp::ai_recruit(int recruitCombatLevel)
 		townPtr = town_array[ linked_town_array[i] ];
 
 		if( townPtr->nation_recno != nation_recno || !townPtr->jobless_population )
+			continue;
+
+		if( !townPtr->can_recruit_people() )
 			continue;
 
 		//-- recruit majority race first, but will also consider other races --//
@@ -490,7 +493,7 @@ int FirmCamp::ai_recruit(int recruitCombatLevel)
 				if( townPtr->accumulated_reward_penalty > 30 )		// if the reward penalty is too high, don't reward
 					break;
 
-				if( nation_array[nation_recno]->cash <= 0 )		// must have cash to reward
+				if( nation_array[nation_recno]->cash < 1000 )		// must have cash to reward
 					break;
 
 				townPtr->reward(COMMAND_AI);
@@ -510,10 +513,45 @@ int FirmCamp::ai_recruit(int recruitCombatLevel)
 		}
 	}
 
-	//------ next, try to recruit from remote villages -----//
+	//------ next, try to recruit from remote villages only if this fort is capturing something -----//
 
-	if( recruitCount > 0 )
-		nation_array[nation_recno]->add_action(loc_x1, loc_y1, -1, -1, ACTION_AI_ASSIGN_WORKER, FIRM_CAMP, recruitCount);
+	bool linkedToOurTown = false;
+	for (int i = 0; i < linked_town_count; i++)
+	{
+		if(town_array.is_deleted(linked_town_array[i]))
+			continue;
+
+		Town* linkedTownPtr = town_array[linked_town_array[i]];
+
+		if (linkedTownPtr->nation_recno == nation_recno)
+		{
+			linkedToOurTown = true;
+			break;
+		}
+	}
+
+	if (linkedToOurTown)
+		return 0;
+
+	for (int i = 0; i < recruitCount; i++)
+	{
+		int unitRecno = nation_array[nation_recno]->recruit_jobless_worker(this, 0);
+		if (unitRecno != 0)
+		{
+			Unit* unit = unit_array[unitRecno];
+			if (unit != nullptr)
+			{
+				unit->assign(loc_x1, loc_y1);
+				if (coming_unit_count < MAX_WORKER)
+				{
+					coming_unit_array[coming_unit_count] = unitRecno;
+					coming_unit_count++;
+				}
+			}
+		}
+	}
+
+	//DieselMachine TODO if we need to recruit more and have cash, try to hire from inn
 
 	return 1;
 }
@@ -843,25 +881,7 @@ int FirmCamp::think_capture_target_town()
 //
 int FirmCamp::ai_capture_independent_town(Town* targetTown, int defenseCombatLevel)
 {
-	//---- see if the force is strong enough to attack the town ----//
-
-	Nation* nationPtr = nation_array[nation_recno];
-
-	int curCombatLevel = total_combat_level();		// total combat level
-
-	int combatDiff = defenseCombatLevel * (150+nationPtr->pref_force_projection/2) / 100
-						  - curCombatLevel;					// try to recruit soldiers based on the force projection perference
-
-	if( combatDiff > 0 )
-	{
-		if( ai_recruit(combatDiff) )    	// try to recruit new soldiers to increase the combat ability of the troop
-			return 0;
-	}
-
-	combatDiff = defenseCombatLevel * (200-nationPtr->pref_military_courage/2) / 100
-					 - curCombatLevel;
-
-	//---------- attack the target town now ----------//
+	//---- attack the target town if the force is strong enough ----//
 
 	if( nation_array[nation_recno]->ai_attack_target(targetTown->loc_x1, targetTown->loc_y1, defenseCombatLevel, 0, 0, firm_recno) )
 		return 1;

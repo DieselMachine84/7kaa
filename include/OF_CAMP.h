@@ -147,7 +147,7 @@ private:
 	bool		think_close();
 	void		think_recruit();
 	int 		think_attack();
-	int  		ai_recruit(int combatLevelNeeded);
+	int  		ai_recruit(int realComingCount);
 	void		ai_attack_town_defender(Unit*);
 	int 		think_attack_nearby_enemy();
 	void 		think_change_town_link();
