@@ -931,28 +931,12 @@ int FirmCamp::think_assign_better_overseer(Town* targetTown)
 	targetTown->get_most_populated_race(mostRaceId1, mostRaceId2);
 
 	//-- if the resistance of the majority race has already dropped to its lowest possible --//
-
-	if( targetTown->race_resistance_array[mostRaceId1-1][nation_recno-1] <=
-		 (float) (targetTown->race_target_resistance_array[mostRaceId1-1][nation_recno-1]+1) )
-	{
-		if( targetTown->race_resistance_array[mostRaceId1-1][nation_recno-1] > 30 )
-		{
-			if( think_assign_better_overseer2(targetTown->town_recno, mostRaceId1) )
-				return 1;
-		}
-	}
+	if (mostRaceId1 != 0 && think_assign_better_overseer2(targetTown->town_recno, mostRaceId1))
+		return 1;
 
 	//-- if the resistance of the 2nd majority race has already dropped to its lowest possible --//
-
-	if( targetTown->race_resistance_array[mostRaceId2-1][nation_recno-1] <=
-		 (float) (targetTown->race_target_resistance_array[mostRaceId2-1][nation_recno-1]+1) )
-	{
-		if( targetTown->race_resistance_array[mostRaceId2-1][nation_recno-1] > 30 )
-		{
-			if( think_assign_better_overseer2(targetTown->town_recno, mostRaceId2) )
-				return 1;
-		}
-	}
+	if (mostRaceId2 != 0 && think_assign_better_overseer2(targetTown->town_recno, mostRaceId2))
+		return 1;
 
 	return 0;
 }
@@ -963,22 +947,34 @@ int FirmCamp::think_assign_better_overseer(Town* targetTown)
 //
 int FirmCamp::think_assign_better_overseer2(int targetTownRecno, int raceId)
 {
-	int reduceResistance;
-
+	Town* townPtr = town_array[targetTownRecno];
 	Nation* ownNation = nation_array[nation_recno];
 
-	int bestUnitRecno = ownNation->find_best_capturer(targetTownRecno, raceId, reduceResistance);
+	int currentTargetResistance = 100;
+	if (overseer_recno != 0)
+	{
+		Unit* unitPtr = unit_array[overseer_recno];
+		if (unitPtr->race_id == raceId)
+			currentTargetResistance = 100 - townPtr->camp_influence(overseer_recno);
+	}
+
+	int targetResistance = 100;
+	//DieselMachine TODO we should try to hire capturer also
+	int bestUnitRecno = ownNation->find_best_capturer(targetTownRecno, raceId, /*out*/ targetResistance);
+	if( targetResistance >= currentTargetResistance || targetResistance >= 50 - ownNation->pref_peacefulness/5 )		// 30 to 50 depending on
+		return 0;
 
 	if( !bestUnitRecno || bestUnitRecno==overseer_recno )		// if we already got the best one here
 		return 0;
 
 	//---- only assign new overseer if the new one's leadership is significantly higher than the current one ----//
 
-	if( overseer_recno && 
+	//DieselMachine we may be sending a general of another race. This condition should not be applied in this case
+	/*if( overseer_recno &&
 		 unit_array[bestUnitRecno]->skill.skill_level < unit_array[overseer_recno]->skill.skill_level + 15 )
 	{
 		return 0;
-	}
+	}*/
 
 	//------ check what the best unit is -------//
 
@@ -1092,6 +1088,7 @@ int FirmCamp::think_capture_use_spy2(Town* targetTown, int raceId, int curSpyLev
 	else
 	{
 		curResistance    = (int) targetTown->race_resistance_array[raceId-1][nation_recno-1];
+		//DieselMachine TODO bug here
 		targetResistance = targetTown->race_target_resistance_array[raceId-1][nation_recno-1];
 	}
 
