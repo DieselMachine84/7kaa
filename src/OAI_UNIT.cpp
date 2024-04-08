@@ -447,7 +447,7 @@ int Nation::train_unit(int skillId, int raceId, short destX, short destY, int& t
 //
 int Nation::recruit_jobless_worker(Firm* destFirmPtr, int preferedRaceId)
 {
-	#define MIN_AI_TOWN_POP		8
+	#define MIN_AI_TOWN_POP		16
 
 	int needSpecificRace, raceId;		// the race of the needed unit
 
@@ -497,6 +497,9 @@ int Nation::recruit_jobless_worker(Firm* destFirmPtr, int preferedRaceId)
 			continue;
 
 		if( townPtr->region_id != destFirmPtr->region_id )
+			continue;
+
+		if( !townPtr->can_recruit_people() )
 			continue;
 
 		//--- get the distance beteween town & the destination firm ---//
