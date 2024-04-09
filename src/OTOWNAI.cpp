@@ -412,21 +412,27 @@ void Town::think_collect_tax()
 
 	//--- collect tax if the loyalty of all the races >= minLoyalty (55-85) ---//
 
-	int yearProfit = (int) nation_array[nation_recno]->profit_365days();
+	Nation* ownNation = nation_array[nation_recno];
 
-	int minLoyalty = 55 + 30 * nation_array[nation_recno]->pref_loyalty_concern / 100;
+	int yearProfit = (int)ownNation->profit_365days();
+	float cash = ownNation->cash;
+	int minLoyalty = 55 + 30 * ownNation->pref_loyalty_concern / 100;
 
 	if( yearProfit < 0 )								// we are losing money now
 		minLoyalty -= (-yearProfit) / 100;		// more aggressive in collecting tax if we are losing a lot of money
 
-	minLoyalty = MAX( 55, minLoyalty );
+	if( cash < 1000.0 )
+		minLoyalty -= 10;
+
+	if( cash < 500.0 )
+		minLoyalty -= 10;
+
+	if( cash < 100.0 )
+		minLoyalty -= 10;
+
+	minLoyalty = MAX( 45, minLoyalty );
 
 	//---------------------------------------------//
-
-	int achievableLoyalty = average_target_loyalty()-10;		// -10 because it's an average, -10 will be safer
-
-	if( achievableLoyalty > minLoyalty )		// if the achievable loyalty is higher, then use it 
-		minLoyalty = achievableLoyalty;
 
 	if( average_loyalty() < minLoyalty )
 		return;
