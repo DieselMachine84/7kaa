@@ -523,10 +523,10 @@ void Town::next_day()
 
 	//------ collect yearly tax -------//
 
-	if( nation_recno && info.game_month==1 && info.game_day==1 )
+	/*if( nation_recno && info.game_month==1 && info.game_day==1 )
 	{
 		collect_yearly_tax();
-	}
+	}*/
 
 	//------ catching spies -------//
 
