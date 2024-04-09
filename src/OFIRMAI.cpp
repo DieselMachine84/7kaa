@@ -515,22 +515,6 @@ int Firm::think_capture()
 //--------- End of function Firm::think_capture -----------//
 
 
-//------- Begin of function Firm::think_linked_town_change_nation ------//
-//
-// This function is called by Town::set_nation() when a town linked
-// to this firm has changed nation.
-//
-// <int> linkedTownRecno - the recno of the town that has changed nation.
-// <int> oldNationRecno  - the old nation recno of the town
-// <int> newNationRecno  - the new nation recno of the town
-//
-void Firm::think_linked_town_change_nation(int linkedTownRecno, int oldNationRecno, int newNationRecno)
-{
-
-}
-//-------- End of function Firm::think_linked_town_change_nation ------//
-
-
 //--------- Begin of function Firm::ai_firm_captured --------//
 //
 // This is function is called when the AI's firm is just
