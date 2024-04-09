@@ -255,7 +255,7 @@ int Spy::think_reward()
 	int neededLoyalty = spy_skill * (100+ownNation->pref_loyalty_concern) / 100;
 
 	neededLoyalty = MAX( UNIT_BETRAY_LOYALTY+10, neededLoyalty );		// 10 points above the betray loyalty level to prevent betrayal
-	neededLoyalty = MIN( 100, neededLoyalty );
+	neededLoyalty = MIN( 90, neededLoyalty );
 
 	//------- if the loyalty is already high enough ------//
 

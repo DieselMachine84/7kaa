@@ -902,6 +902,7 @@ int Unit::think_reward()
 
 	//----- otherwise only reward soldiers and generals ------//
 
+	//DieselMachine TODO do not reward generals that are not is the camps
 	else if( skill.skill_id == SKILL_LEADING )
 	{
 		//----- calculate the needed loyalty --------//
@@ -920,7 +921,7 @@ int Unit::think_reward()
 		}
 
 		neededLoyalty = MAX( UNIT_BETRAY_LOYALTY+10, neededLoyalty );		// 10 points above the betray loyalty level to prevent betrayal
-		neededLoyalty = MIN( 100, neededLoyalty );
+		neededLoyalty = MIN( 90, neededLoyalty );
 	}
 	else
 	{
