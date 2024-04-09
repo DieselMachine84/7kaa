@@ -1105,8 +1105,11 @@ void Town::population_grow()
 	{
 		//-- the population growth in an independent town is slower than in a nation town ---//
 
+		float loyaltyMultiplier = race_loyalty_array[i] * 4.0 / 50.0 - 3.0;
+		if (loyaltyMultiplier < 0.0)
+			loyaltyMultiplier = 0.0;
 		if( nation_recno )
-			race_pop_growth_array[i] += race_pop_array[i] * (100+quality_of_life) / 100;
+			race_pop_growth_array[i] += (int)((float)race_pop_array[i] * loyaltyMultiplier);
 		else
 			race_pop_growth_array[i] += race_pop_array[i];
 
