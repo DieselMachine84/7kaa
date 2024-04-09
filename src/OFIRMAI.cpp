@@ -507,7 +507,7 @@ int Firm::think_capture()
 		int useAllCamp = nationPtr->pref_military_courage > 60 || misc.random(3)==0;
 
 		nationPtr->ai_attack_target( bestTarget->loc_x1, bestTarget->loc_y1,
-			((FirmCamp*)bestTarget)->total_combat_level(), 0, 0, 0, 0, useAllCamp );
+			((FirmCamp*)bestTarget)->total_combat_level(), 0, 0, 0, useAllCamp );
 	}
 
 	return 1;
