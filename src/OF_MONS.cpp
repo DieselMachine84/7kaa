@@ -785,12 +785,22 @@ void FirmMonster::being_attacked(int attackerUnitRecno)
 
 	if( monster_general_count > 0 )
 	{
-		int mobilizedCount = mobilize_general( misc.random(monster_general_count)+1 );
-
-		if(mobilizedCount)
+		while (total_defender() < maxDefender)
 		{
-			defending_general_count++;
-			defending_soldier_count += mobilizedCount-1;
+			if (monster_general_count == 0)
+				break;
+
+			int mobilizedCount = mobilize_general( misc.random(monster_general_count)+1 );
+
+			if(mobilizedCount)
+			{
+				defending_general_count++;
+				defending_soldier_count += mobilizedCount-1;
+			}
+			else
+			{
+				break;
+			}
 		}
 	}
 
