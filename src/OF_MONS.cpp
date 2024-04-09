@@ -40,6 +40,7 @@
 #include <locale.h>
 #include <ConfigAdv.h>
 #include "gettext.h"
+#include <vector>
 
 
 //----------- Define constant ------------//
@@ -1207,9 +1208,63 @@ int FirmMonster::think_attack_human()
 	if( generalCount<=1 )	// don't attack if there is only one general in the firm
 		return 0;
 
+	info.set_rank_data(0);
+	int totalScore = 0;
+	//------ the more score the player has, the more often mosters will attack him ------//
+	for (int i = 1; i <= nation_array.size(); i++)
+	{
+		if (nation_array.is_deleted(i))
+			continue;
+
+		int nationScore = info.get_total_score(i);
+		totalScore += nationScore;
+	}
+	int randomValue = misc.random(totalScore) + 1;
+
+	totalScore = 0;
+	int targetNation = 0;
+	for (int i = 1; i <= nation_array.size(); i++)
+	{
+		if (nation_array.is_deleted(i))
+			continue;
+
+		int nationScore = info.get_total_score(i);
+		totalScore += nationScore;
+		if (randomValue <= totalScore)
+		{
+			targetNation = i;
+			break;
+		}
+	}
+
+	if (targetNation == 0)
+		return 0;
+
+	int targetXLoc = -1, targetYLoc = -1, targetNationRecno = targetNation;
+	std::vector<int> targetFirms;
+	for (int firmRecno = 1; firmRecno <= firm_array.size(); firmRecno++)
+	{
+		if (firm_array.is_deleted(firmRecno))
+			continue;
+
+		Firm* firmPtr = firm_array[firmRecno];
+		if (firmPtr->nation_recno != targetNationRecno || firmPtr->region_id != region_id)
+			continue;
+
+		targetFirms.push_back(firmRecno);
+	}
+
+	if (targetFirms.size() > 0)
+	{
+		int selectedFirmIndex = misc.random(targetFirms.size());
+		Firm* selectedFirm = firm_array[targetFirms[selectedFirmIndex]];
+		targetXLoc = selectedFirm->loc_x1;
+		targetYLoc = selectedFirm->loc_y1;
+	}
+
 	//------ look for neighbors to attack ------//
 
-	int   firmRecno, townRecno;
+	/*int   firmRecno, townRecno;
 	int   targetXLoc= -1, targetYLoc, targetNationRecno=0;
 	Firm* firmPtr;
 	Town* townPtr;
@@ -1249,7 +1304,7 @@ int FirmMonster::think_attack_human()
 			targetNationRecno = townPtr->nation_recno;
 			break;
 		}
-	}
+	}*/
 
 	if( targetXLoc == -1 )		// no target selected
 		return 0;
