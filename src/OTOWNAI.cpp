@@ -1710,7 +1710,7 @@ int Town::think_counter_spy()
 
 	Nation* ownNation = nation_array[nation_recno];
 
-	if( ownNation->total_spy_count > ownNation->total_population * (10+ownNation->pref_spy/5) / 100 )		// 10% to 30%
+	if( ownNation->total_spy_count > ownNation->total_population * (5+ownNation->pref_counter_spy/10) / 100 )		// 5% to 15%
 		return 0;
 
 	if( !ownNation->ai_should_spend(ownNation->pref_counter_spy/2) )		// 0 to 50
@@ -1718,11 +1718,8 @@ int Town::think_counter_spy()
 
 	//--- the expense of spies should not be too large ---//
 
-	if( ownNation->expense_365days(EXPENSE_SPY) >
-		 ownNation->expense_365days() * (50+ownNation->pref_counter_spy) / 400 )
-	{
+	if( ownNation->expense_365days(EXPENSE_SPY) > ownNation->expense_365days() * (50+ownNation->pref_counter_spy) / 400 )
 		return 0;
-	}
 
 	//------- check if we need additional spies ------//
 
@@ -1774,7 +1771,7 @@ int Town::think_spying_town()
 	if( ownNation->total_population < 30-ownNation->pref_spy/10 )		// don't use spies if the population is too low, we need to use have people to grow population
 		return 0;
 
-	if( ownNation->total_spy_count > ownNation->total_population * (10+ownNation->pref_spy/5) / 100 )		// 10% to 30%
+	if( ownNation->total_spy_count > ownNation->total_population * (10+ownNation->pref_spy/10) / 100 )		// 10% to 20%
 		return 0;
 
 	if( !ownNation->ai_should_spend(ownNation->pref_spy/2) )		// 0 to 50
