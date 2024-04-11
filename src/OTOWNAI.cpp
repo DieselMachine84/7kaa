@@ -846,7 +846,7 @@ bool Town::can_recruit_people()
 //
 int Town::think_build_market()
 {
-	if( info.game_date < setup_date + 90 )		// don't build the market too soon, as it may need to migrate to other town
+	if( info.game_date < setup_date + 180 )		// don't build the market too soon, as it may need to migrate to other town
 		return 0;
 
 	Nation* ownNation = nation_array[nation_recno];
