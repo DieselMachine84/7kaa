@@ -1042,6 +1042,10 @@ void Town::update_product_supply()
 
 int Town::think_build_research()
 {
+	//Do not build the first year
+	if (info.game_date < info.game_start_date + 365)
+		return 0;
+
 	Nation* nationPtr = nation_array[nation_recno];
 
 	if( !is_base_town )
