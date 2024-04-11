@@ -1873,6 +1873,34 @@ int Town::new_base_town_status()
 {
 	Nation* ownNation = nation_array[nation_recno];
 
+	//---- town near mine should be the base ---//
+
+	for (int i = 0; i < linked_firm_count; i++)
+	{
+		if (firm_array[linked_firm_array[i]]->firm_id == FIRM_MINE)
+			return 1;
+	}
+
+	//---- if there is a town near mine with low population and only two towns in total then only mine town should be the base ---//
+
+	if (ownNation->ai_town_count == 2)
+	{
+		int townWithMinePopulation = MAX_TOWN_POPULATION;
+		for (int i = 0; i < ownNation->ai_town_count; i++)
+		{
+			Town* townPtr = town_array[ownNation->ai_town_array[i]];
+			for (int j = 0; j < townPtr->linked_firm_count; j++)
+			{
+				if (firm_array[townPtr->linked_firm_array[j]]->firm_id == FIRM_MINE)
+				{
+					townWithMinePopulation = townPtr->population;
+				}
+			}
+		}
+		if (townWithMinePopulation < MAX_TOWN_POPULATION / 2)
+			return 0;
+	}
+
 	if( population > 20 + ownNation->pref_territorial_cohesiveness/10 )
 		return 1;
 
