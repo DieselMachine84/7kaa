@@ -652,7 +652,7 @@ int Town::protection_needed()
 			protectionNeeded += (int) firmPtr->productivity*2;
 
 			if( firmPtr->firm_id == FIRM_MINE )		// more protection for mines
-				protectionNeeded += 200;
+				protectionNeeded += 600;
 		}
 	}
 
