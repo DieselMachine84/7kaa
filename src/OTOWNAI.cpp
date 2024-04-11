@@ -914,6 +914,10 @@ int Town::think_build_market()
 //
 int Town::think_build_camp()
 {
+	//Do not build second camp too early because we can move our first town
+	if (info.game_date < info.game_start_date + 180)
+		return 0;
+
 	//----- check if any of the other camps protecting this town is still recruiting soldiers, if so, wait until their recruitment is finished. So we can measure the protection available accurately.
 
 	Nation* 	 ownNation = nation_array[nation_recno];
