@@ -681,7 +681,19 @@ int Town::protection_available()
 		//----- if this is a camp, add combat level points -----//
 
 		if( firmPtr->firm_id == FIRM_CAMP )
-			protectionLevel += 10 + ((FirmCamp*)firmPtr)->total_combat_level();		// +10 for the existence of the camp structure
+		{
+			int linkedTownsCount = 0;
+			for (int townIndex = 0; townIndex < firmPtr->linked_town_count; townIndex++)
+			{
+				Town* firmTownPtr = town_array[firmPtr->linked_town_array[townIndex]];
+				if (firmTownPtr->nation_recno == nation_recno)
+					linkedTownsCount++;
+			}
+			int combatLevel = ((FirmCamp*)firmPtr)->total_combat_level();
+			if (linkedTownsCount > 1)
+				combatLevel = combatLevel / linkedTownsCount;
+			protectionLevel += 10 + combatLevel;		// +10 for the existence of the camp structure
+		}
 	}
 
 	return protectionLevel;
