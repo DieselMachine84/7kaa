@@ -939,7 +939,7 @@ int Town::think_build_camp()
 		if( firmCamp->nation_recno != nation_recno )
 			continue;
 
-		if( firmCamp->under_construction || firmCamp->ai_recruiting_soldier )  			// if this camp is still trying to recruit soldiers
+		if( firmCamp->under_construction || firmCamp->ai_recruiting_soldier || firmCamp->worker_count < MAX_WORKER )	// if this camp is still trying to recruit soldiers
 			return 0;
 
 		campCount++;
@@ -959,15 +959,17 @@ int Town::think_build_camp()
 
 	//---- only build camp if we need more protection than it is currently available ----//
 
-	int protectionNeeded 	= protection_needed();
 	int protectionAvailable = protection_available();
+	int protectionNeeded = protection_needed();
+	Nation* nationPtr = nation_array[nation_recno];
+	//Protect 1.5 - 2.5 times more than needed depending on the military development
+	if (nationPtr->ai_has_enough_food() > 0)
+		protectionNeeded = protectionNeeded * (150 + nationPtr->pref_military_development) / 100;
 
-	if( protectionAvailable >= protectionNeeded )
+	if (protectionAvailable >= protectionNeeded)
 		return 0;
 
-	Nation* nationPtr = nation_array[nation_recno];
-
-	if( !(protectionNeeded>0 && protectionAvailable==0) )		// if protection needed > 0, and protection available is 0, we must build a camp now
+	if (protectionAvailable > 0)		// if protection available is 0, we must build a camp now
 	{
 		int needUrgency = 100 * (protectionNeeded-protectionAvailable) / protectionNeeded;
 
