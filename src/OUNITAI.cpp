@@ -445,7 +445,7 @@ int Unit::think_general_action()
 
 	//--- if the skill of the general and the number of soldiers he commands is not large enough to justify building a new camp ---//
 
-	else if( skill.skill_level + team_info->member_count*4
+	else if( skill.skill_level/* + team_info->member_count*4*/
 				< 40 + ownNation->pref_keep_general/5 )					// 40 to 60
 	{
 		rc = 1;
