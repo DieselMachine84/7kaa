@@ -211,7 +211,8 @@ void Unit::process_ai()
 
 				if( !leader_unit_recno )		// only when the unit is not led by a commander
 				{
-					resign(COMMAND_AI);
+					//DieselMachine TODO check with anti-spy and send to a camp
+					//resign(COMMAND_AI);
 				}
 				else
 				{
@@ -1254,12 +1255,12 @@ int Unit::ai_settle_new_town()
 //
 int Unit::ai_handle_seek_path_fail()
 {
-	if( seek_path_fail_count < 5 )		// wait unit it has failed many times
+	if( seek_path_fail_count < 50 )		// wait unit it has failed many times
 		return 0;
 
 	//----- try to move to a new location -----//
 
-	if( seek_path_fail_count==5 )
+	if( seek_path_fail_count == 50 )
 	{
 		stop2();		// stop the unit and think for new action
 		return 0;
@@ -1269,7 +1270,9 @@ int Unit::ai_handle_seek_path_fail()
 
 	int resignFlag = 0;
 
-	if( rank_id == RANK_SOLDIER && !leader_unit_recno )
+	if (seek_path_fail_count >= 95)
+		resignFlag = 1;
+	/*if( rank_id == RANK_SOLDIER && !leader_unit_recno )
 	{
 		if( seek_path_fail_count>=7 )
 			resignFlag = 1;
@@ -1278,7 +1281,7 @@ int Unit::ai_handle_seek_path_fail()
 	{
 		if( seek_path_fail_count >= 7+skill.skill_level/10 )
 			resignFlag = 1;
-	}
+	}*/
 
 	if( resignFlag && is_visible() )
 	{
