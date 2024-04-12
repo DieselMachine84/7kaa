@@ -546,7 +546,7 @@ int Unit::think_leader_action()
 
 	//-- if there is room in the camp to host all soldiers led by this general --//
 
-	if( team_info->member_count-1 <= MAX_WORKER-bestCamp->worker_count )
+	if( team_info->member_count > 0 && team_info->member_count-1 <= MAX_WORKER-bestCamp->worker_count )
 	{
 		validate_team();
 
