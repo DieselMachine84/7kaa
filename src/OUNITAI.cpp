@@ -462,6 +462,8 @@ int Unit::think_general_action()
 
 	if( rc )
 	{
+		for (int i = 0; i < 4; i++)
+			reward(nation_recno);
 		set_rank(RANK_SOLDIER);
 		return think_normal_human_action();
 	}
