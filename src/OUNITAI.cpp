@@ -624,28 +624,64 @@ int Unit::think_normal_human_action()
 
 				if( firmPtr->is_worker_full() )
 				{
-					//---- get the lowest skill worker of the firm -----//
-
-					Worker* workerPtr = firmPtr->worker_array;
-					int	  minSkill=100;
-
-					for( int j=0 ; j<firmPtr->worker_count ; j++, workerPtr++ )
+					if (firmPtr->firm_id != FIRM_CAMP)
 					{
-						if( workerPtr->skill_level < minSkill )
-							minSkill = workerPtr->skill_level;
+						//---- get the lowest skill worker of the firm -----//
+
+						Worker* workerPtr = firmPtr->worker_array;
+						int	  minSkill=100;
+
+						for( int j=0 ; j<firmPtr->worker_count ; j++, workerPtr++ )
+						{
+							if( workerPtr->skill_level < minSkill )
+								minSkill = workerPtr->skill_level;
+						}
+
+						//------------------------------//
+
+						if( firmPtr->majority_race() == race_id )
+						{
+							if( skill.skill_level < minSkill+10 )
+								continue;
+						}
+						else //-- for different race, only assign if the skill is significantly higher than the existing ones --//
+						{
+							if( skill.skill_level < minSkill+30 )
+								continue;
+						}
 					}
-
-					//------------------------------//
-
-					if( firmPtr->majority_race() == race_id )
+					else
 					{
-						if( skill.skill_level < minSkill+10 )
-							continue;
-					}
-					else //-- for different race, only assign if the skill is significantly higher than the existing ones --//
-					{
-						if( skill.skill_level < minSkill+30 )
-							continue;
+						//---- get the lowest max hit points worker of the camp -----//
+
+						Worker* workerPtr = firmPtr->worker_array;
+						short minMaxHitPoints = 1000;
+						short minMaxHitPointsOtherRace = 1000;
+						bool hasOtherRace = false;
+
+						for (int j = 0; j < firmPtr->worker_count; j++, workerPtr++)
+						{
+							if (workerPtr->max_hit_points() < minMaxHitPoints)
+								minMaxHitPoints = workerPtr->max_hit_points();
+
+							if (workerPtr->race_id != firmPtr->majority_race())
+							{
+								hasOtherRace = true;
+								if (workerPtr->max_hit_points() < minMaxHitPointsOtherRace)
+									minMaxHitPointsOtherRace = workerPtr->max_hit_points();
+							}
+						}
+
+						if (firmPtr->majority_race() == race_id)
+						{
+							if ((!hasOtherRace && (minMaxHitPoints > max_hit_points - 10)) || (hasOtherRace && (minMaxHitPointsOtherRace > max_hit_points + 30)))
+								continue;
+						}
+						else
+						{
+							if ((hasOtherRace && (minMaxHitPointsOtherRace > max_hit_points - 10)) || (!hasOtherRace && (minMaxHitPoints > max_hit_points - 30)))
+								continue;
+						}
 					}
 				}
 				else
