@@ -156,13 +156,11 @@ int Nation::think_capture_independent()
 		//------ no linked camps interfering with potential capture ------//
 
 		int captureUnitRecno;
-		int targetResistance  = capture_expected_resistance(townRecno, &captureUnitRecno);
-		int averageResistance = townPtr->average_resistance(nation_recno);
-		int minResistance 	 = MIN( averageResistance, targetResistance );
+		int targetResistance = capture_expected_resistance(townRecno, &captureUnitRecno);
 
-		if( minResistance < 50 - pref_peacefulness/5 )		// 30 to 50 depending on
+		if( targetResistance < 50 - pref_peacefulness/5 )		// 30 to 50 depending on
 		{
-			captureTownQueue.push({townRecno, minResistance, captureUnitRecno});
+			captureTownQueue.push({townRecno, targetResistance, captureUnitRecno});
 		}
 	}
 
