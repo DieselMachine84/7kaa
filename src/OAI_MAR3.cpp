@@ -165,7 +165,7 @@ int Nation::ai_patrol_to_region(int destXLoc, int destYLoc, int seaActionId)
 		if( !(firmCamp->overseer_recno && firmCamp->worker_count==MAX_WORKER) )		// only when the camp is filled with workers
 			continue;
 
-		if( firmCamp->ai_capture_town_recno )     // the base is trying to capture an independent town
+		if( firmCamp->ai_is_capturing_independent_village() )     // the base is trying to capture an independent town
 			continue;
 
 		if( firmCamp->is_attack_camp )

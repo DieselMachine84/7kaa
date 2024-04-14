@@ -79,6 +79,7 @@ public:
 	int 			total_combat_level();
 	int 			average_combat_level();
 	int 			ai_combat_level_needed();
+	bool			ai_is_capturing_independent_village();
 
 	int	   	ai_has_excess_worker();
 

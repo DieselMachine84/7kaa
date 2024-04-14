@@ -677,6 +677,25 @@ int FirmCamp::ai_should_close()
 //----------- End of function FirmCamp::ai_should_close ----------//
 
 
+//--------- Begin of function FirmCamp::ai_is_capturing_independent_village ---------//
+//
+// Whether this AI camp captures independent village or not
+//
+bool FirmCamp::ai_is_capturing_independent_village()
+{
+	for (int i = 0; i < linked_town_count; i++)
+	{
+		Town* townPtr = town_array[linked_town_array[i]];
+		if (townPtr->nation_recno == 0)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+//----------- End of function FirmCamp::ai_is_capturing_independent_village ----------//
+
+
 //--------- Begin of function FirmCamp::think_capture ---------//
 //
 // Think about capturing towns.
@@ -1190,7 +1209,7 @@ int FirmCamp::ai_has_excess_worker()
 	if( linked_town_count==0 )
 		return 1;
 
-	if( ai_capture_town_recno )		// no if the camp is trying to capture an independent town
+	if( ai_is_capturing_independent_village() )		// no if the camp is trying to capture an independent town
 		return 0;
 
 	if( is_attack_camp )		// no if the camp is trying to capture an independent town
@@ -1365,7 +1384,7 @@ int FirmCamp::think_assign_better_commander()
 {
 	//--- we are capturing a village, there is a separate place to assign a better commander ---//
 
-	if (ai_capture_town_recno != 0)
+	if (ai_is_capturing_independent_village())
 		return 0;
 
 	//----- if there is already an overseer being assigned to the camp ---//

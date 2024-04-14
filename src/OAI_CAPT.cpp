@@ -90,7 +90,7 @@ int Nation::think_capture_independent()
 			continue;
 
 		FirmCamp* campPtr = (FirmCamp*)firmPtr;
-		if (campPtr->ai_capture_town_recno)
+		if (campPtr->ai_is_capturing_independent_village())
 			numberOfTownsWeAlreadyCapturing++;
 	}
 

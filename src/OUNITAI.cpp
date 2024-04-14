@@ -504,6 +504,11 @@ int Unit::think_leader_action()
 		if( firmCamp->overseer_recno == nationPtr->king_unit_recno )
 			continue;
 
+		//--- we have separate logic for choosing generals of capturing camps ---//
+
+		if (firmCamp->ai_is_capturing_independent_village())
+			continue;
+
 		//-------------------------------------//
 
 		int curLeadership = firmCamp->cur_commander_leadership();
@@ -1116,7 +1121,7 @@ int Unit::think_king_flee()
 		//
 		//------------------------------------------//
 
-		Firm *firmCamp, *bestCamp=NULL;
+		FirmCamp *firmCamp, *bestCamp=NULL;
 		int	curRating, bestRating=0;
 		int	curXLoc = next_x_loc(), curYLoc = next_y_loc();
 		int	curRegionId = world.get_region_id( curXLoc, curYLoc );
@@ -1125,12 +1130,15 @@ int Unit::think_king_flee()
 		{
 			for( int i=ownNation->ai_camp_count-1 ; i>=0 ; i-- )
 			{
-				firmCamp = (FirmCamp*) firm_array[ ownNation->ai_camp_array[i] ];
+				firmCamp = (FirmCamp*)firm_array[ ownNation->ai_camp_array[i] ];
 
 				if( firmCamp->region_id != curRegionId )
 					continue;
 
 				if( firmCamp->overseer_recno && rank_id!=RANK_KING )		// if there is already a commander in this camp. However if this is the king, than ingore this
+					continue;
+
+				if( firmCamp->ai_is_capturing_independent_village() )
 					continue;
 
 				curRating = world.distance_rating( curXLoc, curYLoc,
@@ -1146,7 +1154,7 @@ int Unit::think_king_flee()
 		}
 		else if( home_camp_firm_recno )	// if there is a home for the king
 		{
-			bestCamp = firm_array[home_camp_firm_recno];
+			bestCamp = (FirmCamp*)firm_array[home_camp_firm_recno];
 		}
 
 		//------------------------------------//
@@ -1198,7 +1206,7 @@ int Unit::think_general_flee()
 		//
 		//------------------------------------------//
 
-		Firm *firmCamp, *bestCamp=NULL;
+		FirmCamp *firmCamp, *bestCamp=NULL;
 		int	curRating, bestRating=0;
 		int	curXLoc = next_x_loc(), curYLoc = next_y_loc();
 		int	curRegionId = world.get_region_id( curXLoc, curYLoc );
@@ -1207,9 +1215,12 @@ int Unit::think_general_flee()
 		{
 			for( int i=ownNation->ai_camp_count-1 ; i>=0 ; i-- )
 			{
-				firmCamp = (FirmCamp*) firm_array[ ownNation->ai_camp_array[i] ];
+				firmCamp = (FirmCamp*)firm_array[ ownNation->ai_camp_array[i] ];
 
 				if( firmCamp->region_id != curRegionId )
+					continue;
+
+				if( firmCamp->ai_is_capturing_independent_village() )
 					continue;
 
 				curRating = world.distance_rating( curXLoc, curYLoc,
@@ -1225,7 +1236,7 @@ int Unit::think_general_flee()
 		}
 		else if( home_camp_firm_recno )	// if there is a home for the general
 		{
-			bestCamp = firm_array[home_camp_firm_recno];
+			bestCamp = (FirmCamp*)firm_array[home_camp_firm_recno];
 		}
 
 		//------------------------------------//

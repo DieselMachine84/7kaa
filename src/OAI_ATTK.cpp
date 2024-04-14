@@ -118,7 +118,7 @@ int Nation::ai_attack_target(int targetXLoc, int targetYLoc, int targetCombatLev
 		if (isProtectionCamp)
 			continue;
 
-		if (firmCamp->ai_capture_town_recno)	// the camp is trying to capture an independent town
+		if (firmCamp->ai_is_capturing_independent_village())	// the camp is trying to capture an independent town
 			continue;
 
 		if (firmCamp->is_attack_camp)	// the camp is on another attack mission already
