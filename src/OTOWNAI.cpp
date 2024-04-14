@@ -430,6 +430,9 @@ void Town::think_collect_tax()
 	if( cash < 100.0 )
 		minLoyalty -= 10;
 
+	if( cash > 60000.0)
+		minLoyalty = MAX((int)(cash / 1000.0), minLoyalty);
+
 	minLoyalty = MAX( 45, minLoyalty );
 
 	//---------------------------------------------//
