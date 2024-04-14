@@ -115,20 +115,30 @@ void Spy::think_firm_spy()
 	if( firmPtr->nation_recno == true_nation_recno )		// anti-spy
 		return;
 
-	//-------- try to capturing the firm --------//
+	bool isHumanPlayer = false;
+	if (cloaked_nation_recno != 0)
+	{
+		Nation* cloackedNation = nation_array[cloaked_nation_recno];
+		isHumanPlayer = !cloackedNation->is_ai();
+	}
+	Nation* trueNation = nation_array[true_nation_recno];
+	if (isHumanPlayer || trueNation->get_relation_status(cloaked_nation_recno) != NATION_ALLIANCE)
+	{
+		//-------- try to capturing the firm --------//
 
-	if( capture_firm() )
-		return;
+		if( capture_firm() )
+			return;
 
-	//-------- think about bribing ---------//
+		//-------- think about bribing ---------//
 
-	if( think_bribe() )
-		return;
+		if( think_bribe() )
+			return;
 
-	//-------- think about assassinating ---------//
+		//-------- think about assassinating ---------//
 
-	if( think_assassinate() )
-		return;
+		if( think_assassinate() )
+			return;
+	}
 
 	//------ think about changing spy mode ----//
 
