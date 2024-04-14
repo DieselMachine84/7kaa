@@ -748,6 +748,15 @@ int Unit::think_normal_human_action()
 				}
 			}
 			assign(bestFirm->loc_x1, bestFirm->loc_y1);
+			if (bestFirm->firm_id == FIRM_CAMP)
+			{
+				FirmCamp* firmCamp = (FirmCamp*)bestFirm;
+				if (firmCamp->coming_unit_count < MAX_WORKER)
+				{
+					firmCamp->coming_unit_array[firmCamp->coming_unit_count] = sprite_recno;
+					firmCamp->coming_unit_count++;
+				}
+			}
 			return 1;
 		}
 	}
