@@ -466,6 +466,10 @@ int Firm::think_capture()
 	if( i==0 )
 		return 0;
 
+	//------- do not capture firms of our ally --------//
+	if (nation_array[nation_recno]->is_ai() && nationPtr->get_relation_status(nation_recno) == NATION_ALLIANCE)
+		return 0;
+
 	//------- capture the firm --------//
 
 	capture_firm(i);
