@@ -1093,7 +1093,7 @@ void Unit::ai_leader_being_attacked(int attackerUnitRecno)
 //
 int Unit::think_king_flee()
 {
-	if( force_move_flag && cur_action != SPRITE_IDLE )		// the king is already fleeing now
+	if( force_move_flag && cur_action != SPRITE_IDLE && cur_action != SPRITE_ATTACK )		// the king is already fleeing now
 		return 1;
 
 	//------- if the king is alone --------//
@@ -1175,7 +1175,7 @@ int Unit::think_king_flee()
 
 int Unit::think_general_flee()
 {
-	if( force_move_flag && cur_action != SPRITE_IDLE )		// the general is already fleeing now
+	if( force_move_flag && cur_action != SPRITE_IDLE && cur_action != SPRITE_ATTACK )		// the general is already fleeing now
 		return 1;
 
 	//------- if the general is alone --------//
