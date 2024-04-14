@@ -329,8 +329,9 @@ Town* Nation::think_capture_enemy_town_target(Town* capturerTown)
 
 		//------- calculate the rating --------------//
 
-		curRating = world.distance_rating(capturerTown->center_x, capturerTown->center_y,
-						targetTown->center_x, targetTown->center_y);
+		//DieselMachine TODO better calculate distance rating
+		//curRating = world.distance_rating(capturerTown->center_x, capturerTown->center_y, targetTown->center_x, targetTown->center_y);
+		curRating = 0;
 
 		curRating -= townCombatLevel/10;
 
@@ -390,6 +391,8 @@ Town* Nation::think_capture_enemy_town_target(Town* capturerTown)
 		//--- more linked towns increase the attractiveness rating ---//
 
 		curRating += targetTown->linked_firm_count*5;
+
+		curRating = curRating * world.distance_rating(capturerTown->center_x, capturerTown->center_y, targetTown->center_x, targetTown->center_y) / 100;
 
 		//-------- compare with the current best rating ---------//
 
