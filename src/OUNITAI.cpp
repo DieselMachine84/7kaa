@@ -710,6 +710,43 @@ int Unit::think_normal_human_action()
 
 		if( bestFirm )
 		{
+			if (bestFirm->firm_id == FIRM_CAMP && bestFirm->worker_count == MAX_WORKER
+				&& misc.points_distance(curXLoc, curYLoc, bestFirm->loc_x1, bestFirm->loc_y1) < 5)
+			{
+				short minMaxHitPointsOtherRace = 1000;
+				int bestWorkerId = -1;
+				Worker* workerPtr = bestFirm->worker_array;
+				for (int j = 0; j < bestFirm->worker_count; j++, workerPtr++)
+				{
+					if (workerPtr->race_id != race_id)
+					{
+						if (workerPtr->max_hit_points() < minMaxHitPointsOtherRace)
+						{
+							minMaxHitPointsOtherRace = workerPtr->max_hit_points();
+							bestWorkerId = j + 1;
+						}
+					}
+				}
+
+				if (bestWorkerId == -1)
+				{
+					short minMaxHitPoints = 1000;
+					workerPtr = bestFirm->worker_array;
+					for (int j = 0; j < bestFirm->worker_count; j++, workerPtr++)
+					{
+						if (workerPtr->max_hit_points() < minMaxHitPoints)
+						{
+							minMaxHitPoints = workerPtr->max_hit_points();
+							bestWorkerId = j + 1;
+						}
+					}
+				}
+
+				if (bestWorkerId != -1)
+				{
+					bestFirm->mobilize_worker(bestWorkerId, COMMAND_AI);
+				}
+			}
 			assign(bestFirm->loc_x1, bestFirm->loc_y1);
 			return 1;
 		}
