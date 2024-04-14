@@ -865,7 +865,7 @@ int Nation::consider_declare_war(TalkMsg* talkMsg)
 
 	//--- if the nation is having a financial difficulty, it won't agree ---//
 
-	if( cash < 2000 * pref_cash_reserve / 100  )
+	if( cash < 2000 + 3000 * pref_cash_reserve / 100 )
 		return 0;
 
 	//--------------------------------------------//
@@ -919,7 +919,7 @@ int Nation::consider_trade_embargo(TalkMsg* talkMsg)
 
 	//--- if the nation is having a financial difficulty, it won't agree ---//
 
-	if( cash < 2000 * pref_cash_reserve / 100  )
+	if( cash < 2000 + 3000 * pref_cash_reserve / 100 )
 		return 0;
 
 	//--------------------------------------------//
@@ -965,7 +965,7 @@ int Nation::consider_military_aid(TalkMsg* talkMsg)
 
 	//--- if the nation is having a financial difficulty, it won't agree ---//
 
-	if( cash < 2000 * pref_cash_reserve / 100  )
+	if( cash < 2000 + 3000 * pref_cash_reserve / 100 )
 		return 0;
 
 	//----- can't aid if we are too weak ourselves ---//

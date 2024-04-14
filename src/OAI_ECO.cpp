@@ -31,7 +31,7 @@
 
 void Nation::think_reduce_expense()
 {
-	if( true_profit_365days() > 0 || cash > 5000 * pref_cash_reserve / 100 )
+	if( true_profit_365days() > 0 || cash > 1000 + 2000 * pref_cash_reserve / 100 )
 		return;
 
 	//-------- close down firms ---------//

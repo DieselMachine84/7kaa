@@ -171,7 +171,7 @@ int FirmWar::should_build_new_weapon()
 		return 0;
 
 	if( nationPtr->expense_365days(EXPENSE_WEAPON) >
-		 nationPtr->income_365days() * 30 + nationPtr->pref_use_weapon/2 )		// if weapon expenses are larger than 30% to 80% of the total income, don't build new weapons
+		 nationPtr->income_365days() * (30 + nationPtr->pref_use_weapon / 2) / 100 )		// if weapon expenses are larger than 30% to 80% of the total income, don't build new weapons
 	{
 		return 0;
 	}

@@ -46,7 +46,7 @@ int Nation::think_capture_new_enemy_town(Town* capturerTown, int useAllCamp)
 
 	//---- only attack when we have enough money to support the war ----//
 
-	if( cash < 1000 + 2000 * pref_cash_reserve / 100 )		// if the cash is really too low now
+	if( cash < 2000 + 3000 * pref_cash_reserve / 100 )		// if the cash is really too low now
 		return 0;
 
 	//--------------------------------------//

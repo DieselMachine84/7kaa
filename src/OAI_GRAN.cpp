@@ -804,8 +804,13 @@ void Nation::ai_end_treaty(int nationRecno)
 //
 int Nation::ai_has_enough_food()
 {
-	return food > 2000 + 2000 * pref_food_reserve / 100
-			 || yearly_food_change() > 0;
+	if (food > 5000 + 5000 * pref_food_reserve / 100)
+		return 1;
+
+	if (food < 1000 + 1000 * pref_food_reserve / 100)
+		return 0;
+
+	return yearly_food_change() > 0;
 }
 //------ End of function Nation::ai_has_enough_food ------//
 
