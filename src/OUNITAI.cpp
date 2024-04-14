@@ -812,8 +812,12 @@ int Unit::think_normal_human_action()
 
 	if( bestTown )
 	{
-		assign(bestTown->loc_x1, bestTown->loc_y1);
-		return 1;
+		//DieselMachine TODO do not settle skilled soldiers
+		if (max_hit_points < 50)
+		{
+			assign(bestTown->loc_x1, bestTown->loc_y1);
+			return 1;
+		}
 	}
 
 	//----- if we don't have any existing towns in this region ----//
