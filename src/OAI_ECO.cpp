@@ -120,7 +120,7 @@ int Nation::ai_should_spend_war(int enemyMilitaryRating, int considerCeaseFire)
 {
 	int importanceRating = 30 + pref_military_development/5;		// 30 to 50
 
-	importanceRating += military_rank_rating() - enemyMilitaryRating*2;
+	importanceRating += military_rank_rating() - enemyMilitaryRating / 2;
 
 	if( considerCeaseFire )    	// only when we are very powerful, we will start a battle. So won't cease fire too soon after declaring war
 		importanceRating += 20;		// less eary to return 0, for cease fire

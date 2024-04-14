@@ -842,7 +842,7 @@ int Nation::think_demand_tribute_aid()
 
 			curRating = ourMilitary - nationPtr->military_rank_rating();
 
-			if( curRating < 0 )
+			if( curRating < -50 )
 				continue;
 
 			//----------------------------------------------//

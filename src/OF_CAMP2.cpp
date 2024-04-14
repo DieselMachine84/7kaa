@@ -772,7 +772,7 @@ void FirmCamp::think_capture()
 				return;
 			}
 		}
-		else
+		/*else
 		{
 			//--- don't attack if the target nation's military rating is higher than ours ---//
 
@@ -781,7 +781,7 @@ void FirmCamp::think_capture()
 			{
 				return;
 			}
-		}
+		}*/
 	}
 
 	bool hasLinkedEnemyCamps = false;

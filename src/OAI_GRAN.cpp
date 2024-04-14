@@ -692,7 +692,7 @@ int Nation::think_ally_against_big_enemy()
 
 	NationRelation* nationRelation = get_relation(enemyNationRecno);
 
-	if( nationRelation->ai_relation_level > 30 )
+	if( nationRelation->ai_relation_level > 20 )
 	{
 		int talkId;
 

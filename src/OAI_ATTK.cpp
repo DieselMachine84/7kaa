@@ -672,7 +672,7 @@ int Nation::think_secret_attack()
 
 		//--------- calculate the rating ----------//
 
-		curRating = (ourMilitary - nationPtr->military_rank_rating()) * 2
+		curRating = (ourMilitary - nationPtr->military_rank_rating() / 2) * 2
 						 + (overall_rank_rating() - 50) 		// if <50 negative, if >50 positive
 						 - tradeRating*2
 						 - get_relation(i)->ai_relation_level/2

@@ -256,8 +256,6 @@ Town* Nation::think_capture_enemy_town_target(Town* capturerTown)
 	int   townRecno, curRating;
 	Town* targetTown, *bestTown=NULL;
 	Firm* firmPtr;
-	int   ourMilitary = military_rank_rating();
-	Nation* ownNation = nation_array[nation_recno];
 	int   bestRating = -1000;
 	int   neededCombatLevel=0;
 
@@ -311,11 +309,11 @@ Town* Nation::think_capture_enemy_town_target(Town* capturerTown)
 
 		//--- if the enemy is very powerful overall, don't attack it yet ---//
 
-		if( nation_array[targetTown->nation_recno]->military_rank_rating() >
-			 ourMilitary * (80+pref_military_courage/2) / 100 )
+		/*if( nation_array[targetTown->nation_recno]->military_rank_rating() >
+			 military_rank_rating() * (80+pref_military_courage/2) / 100 )
 		{
 			continue;
-		}
+		}*/
 
 		//------ only attack if we have enough money to support the war ----//
 
@@ -342,7 +340,7 @@ Town* Nation::think_capture_enemy_town_target(Town* capturerTown)
 
 		//----- the power of between the nation also affect the rating ----//
 
-		curRating += 2 * (ourMilitary - nation_array[targetTown->nation_recno]->military_rank_rating());
+		//curRating += 2 * (military_rank_rating() - nation_array[targetTown->nation_recno]->military_rank_rating());
 
 		//-- AI Aggressive is set above Low, than the AI will try to capture the player's town first ---//
 
@@ -667,4 +665,3 @@ int Nation::is_battle(int targetXLoc, int targetYLoc)
 		return (int) totalCombatLevel;
 }*/
 //-------- End of function Nation::mobile_defense_combat_level ------//
-
