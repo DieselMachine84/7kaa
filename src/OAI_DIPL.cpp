@@ -1022,6 +1022,9 @@ int Nation::think_give_tech()
 //
 int Nation::think_request_surrender()
 {
+	if( info.game_date < info.game_start_date + 1000)	// offer 3 years after the game starts
+		return 0;
+
 	if( misc.random(5) != 0 )		// don't do this too often
 		return 0;
 
