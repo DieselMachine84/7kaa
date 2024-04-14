@@ -253,7 +253,7 @@ void Nation::ai_attack_target_execute(int directAttack)
 	//---- if the target no longer exist -----//
 
 	//DieselMachine TODO need better check for reset
-	if( ai_attack_target_nation_recno != get_target_nation_recno(ai_attack_target_x_loc, ai_attack_target_y_loc) )
+	if (ai_attack_target_nation_recno != get_target_nation_recno(ai_attack_target_x_loc, ai_attack_target_y_loc))
 	{
 		reset_ai_attack_target();
 	}
@@ -261,7 +261,9 @@ void Nation::ai_attack_target_execute(int directAttack)
 	//Attack date came. Let them fight, now we can prepare for the next attack
 	//restore attack date from distance
 	if (attack_camp_count > 0 && (info.game_date > (int)attack_camp_array[0].distance * 10 + info.game_start_date))
+	{
 		reset_ai_attack_target();
+	}
 
 	//---- if enemy forces came and we need to cancel our attack -----//
 
@@ -561,22 +563,22 @@ void Nation::enable_should_attack_on_target(int targetXLoc, int targetYLoc)
 //
 static int get_target_nation_recno(int targetXLoc, int targetYLoc)
 {
-   Location* locPtr = world.get_loc(targetXLoc, targetYLoc);
+	Location* locPtr = world.get_loc(targetXLoc, targetYLoc);
 
-   if( locPtr->is_firm() )
-   {
+	if( locPtr->is_firm() )
+	{
 		return firm_array[locPtr->firm_recno()]->nation_recno;
-   }
-   else if( locPtr->is_town() )
-   {
+	}
+	else if( locPtr->is_town() )
+	{
 		return town_array[locPtr->town_recno()]->nation_recno;
 	}
-   else if( locPtr->has_unit(UNIT_LAND) )
-   {
-      return unit_array[locPtr->unit_recno(UNIT_LAND)]->nation_recno;
-   }
+	else if( locPtr->has_unit(UNIT_LAND) )
+	{
+		return unit_array[locPtr->unit_recno(UNIT_LAND)]->nation_recno;
+	}
 
-   return 0;
+	return 0;
 }
 //---------- End of static function get_target_nation_recno --------//
 
