@@ -299,7 +299,7 @@ void Unit::stop2(int preserveAction)
 		original_action_mode = 0;
 		ai_original_target_x_loc = -1;
 
-		if( ai_action_id )
+		if( ai_action_id && nation_recno )
 			nation_array[nation_recno]->action_failure(ai_action_id, sprite_recno);
 	}
 
@@ -1448,7 +1448,7 @@ void Unit::pre_process()
 	{
 		set_die();
 
-		if(ai_action_id)
+		if(ai_action_id && nation_recno)
 			nation_array[nation_recno]->action_failure(ai_action_id, sprite_recno);
 
 		return;

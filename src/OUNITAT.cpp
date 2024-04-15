@@ -449,7 +449,7 @@ void Unit::unit_auto_guarding(Unit *attackUnit)
 	//--------------------------------------------------------------------//
 	// cancel AI actions
 	//--------------------------------------------------------------------//
-	if( ai_action_id )
+	if( ai_action_id && nation_recno )
 		nation_array[nation_recno]->action_failure(ai_action_id, sprite_recno);
 
 	if(in_auto_defense_mode())

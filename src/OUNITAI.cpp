@@ -103,7 +103,7 @@ void Unit::process_ai()
 	//--- if the unit has stopped, but ai_action_id hasn't been reset ---//
 
 	if( cur_action==SPRITE_IDLE && action_mode==ACTION_STOP &&
-		 action_mode2==ACTION_STOP && ai_action_id )
+		 action_mode2==ACTION_STOP && ai_action_id && nation_recno )
 	{
 		nation_array[nation_recno]->action_failure(ai_action_id, sprite_recno);
 

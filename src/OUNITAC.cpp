@@ -1423,7 +1423,7 @@ void Unit::process_assign()
 				short actionPara = action_para;
 				short spriteRecno = sprite_recno;
 
-				if(ai_action_id)
+				if(ai_action_id && nation_recno)
 					nation_array[nation_recno]->action_finished(ai_action_id, sprite_recno);
 
 				//------------ update unit_array's selected parameters ------------//
@@ -1480,7 +1480,7 @@ void Unit::process_assign()
 				// abort actions for ai_unit since the target location has nothing
 				//------------------------------------------------------------------//
 
-				if( ai_action_id )
+				if( ai_action_id && nation_recno )
 					nation_array[nation_recno]->action_failure(ai_action_id, sprite_recno);
 			}
 		}
