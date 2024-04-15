@@ -27,10 +27,10 @@
 #ifndef __VERSION_H
 #define __VERSION_H
 
-#define SKVERSION "2.15.6"
-#define SKVERMAJ 2
-#define SKVERMED 15
-#define SKVERMIN 6
+#define SKVERSION "9.4.1"
+#define SKVERMAJ 9
+#define SKVERMED 4
+#define SKVERMIN 1
 
 //#define DEV_VERSION
 
