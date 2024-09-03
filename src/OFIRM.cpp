@@ -1607,7 +1607,7 @@ void Firm::next_day()
 
 	//--- recheck no_neighbor_space after a period, there may be new space available now ---//
 
-	if( no_neighbor_space && info.game_date%180 == firm_recno%180 )
+	if( no_neighbor_space && info.game_date%10 == firm_recno%10 )
 	{
 		short buildXLoc, buildYLoc;
 

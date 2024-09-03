@@ -550,7 +550,7 @@ void Town::next_day()
 
 	//--- recheck no_neighbor_space after a period, there may be new space available now ---//
 
-	if( no_neighbor_space && info.game_date%180 == town_recno%180 )
+	if( no_neighbor_space && info.game_date%10 == town_recno%10 )
 	{
 		LOG_MSG("begin finding neighor space");
 		short buildXLoc, buildYLoc;
