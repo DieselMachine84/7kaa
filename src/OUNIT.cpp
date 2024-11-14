@@ -2382,6 +2382,11 @@ void Unit::resign(int remoteAction)
 			news_array.spy_killed(spy_recno);
 		}
 	}
+	else
+	{
+		if (!config_adv.disable_dieselmachine_changes && nation_recno != 0)
+			nation_array[nation_recno]->change_reputation(-1.0);
+	}
 
 	//----------------------------------------------//
 
