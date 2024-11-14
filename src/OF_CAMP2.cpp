@@ -763,8 +763,8 @@ void FirmCamp::think_capture()
 			if( think_assign_better_overseer(targetTown) )		// a better general is being assigned to this firm, wait for it
 				return;
 
-			if( think_capture_use_spy(targetTown) )
-				return;
+			//if( think_capture_use_spy(targetTown) )
+				//return;
 
 			if( defenseCombatLevel > 100+ownNation->pref_military_courage &&
 				 resistanceDiff > (100-ownNation->pref_peacefulness)/5  )		// depending on the peacefulness, the nation won't attack if resistance > (0-20)
@@ -1085,33 +1085,7 @@ int FirmCamp::ai_capture_enemy_town(Town* targetTown, int defenseCombatLevel)
 //
 int FirmCamp::think_capture_use_spy(Town* targetTown)
 {
-	Nation* ownNation = nation_array[nation_recno];
-
-	//------ get the two most populated races of the town ----//
-
-	int mostRaceId1, mostRaceId2;
-
-	targetTown->get_most_populated_race(mostRaceId1, mostRaceId2);
-
-	//-- get the current number of our spies in this town and see if we need more --//
-
-	int spyCount;
-	int curSpyLevel = spy_array.total_spy_skill_level( SPY_TOWN, targetTown->town_recno, nation_recno, spyCount );
-
-	//--------------------------------------------//
-
-	int rc=0;
-
-	if( think_capture_use_spy2(targetTown, mostRaceId1, curSpyLevel ) )
-		rc = 1;
-
-	if( mostRaceId2 )
-	{
-		if( think_capture_use_spy2(targetTown, mostRaceId2, curSpyLevel ) )
-			rc = 1;
-	}
-
-	return rc;
+	return 0;
 }
 //----------- End of function FirmCamp::think_capture_use_spy -----------//
 
@@ -1122,44 +1096,6 @@ int FirmCamp::think_capture_use_spy(Town* targetTown)
 //
 int FirmCamp::think_capture_use_spy2(Town* targetTown, int raceId, int curSpyLevel)
 {
-	Nation* ownNation = nation_array[nation_recno];
-
-	int curResistance, targetResistance;
-
-	if( targetTown->nation_recno )
-	{
-		curResistance 	  = (int) targetTown->race_loyalty_array[raceId-1];
-		targetResistance = targetTown->race_target_loyalty_array[raceId-1];
-	}
-	else
-	{
-		curResistance    = (int) targetTown->race_resistance_array[raceId-1][nation_recno-1];
-		//DieselMachine TODO bug here
-		targetResistance = targetTown->race_target_resistance_array[raceId-1][nation_recno-1];
-	}
-
-	int minResistance = MIN(curResistance, targetResistance);
-
-	//----- if the resistance is low enough, don't have to use spies -----//
-
-	if( targetTown->nation_recno )
-	{
-		if( minResistance < MIN_NATION_DEFEND_LOYALTY )
-			return 0;
-	}
-	else
-	{
-		if( minResistance < MIN_INDEPENDENT_DEFEND_LOYALTY )
-			return 0;
-	}
-
-	//----- if the needed spy level > current spy level, assign more spies ----//
-
-	int neededSpyLevel = minResistance * (50+ownNation->pref_spy) / 50;
-
-	if( neededSpyLevel > curSpyLevel )
-		return ownNation->ai_assign_spy_to_town(targetTown->town_recno, raceId);
-
 	return 0;
 }
 //----------- End of function FirmCamp::think_capture_use_spy2 -----------//
