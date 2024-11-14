@@ -415,7 +415,7 @@ int Town::independent_unit_join_nation(int raceId, int toNationRecno)
 		case 1:		// peasants
 			skillId = 0;
 			skillLevel = 0;
-			combatLevel = 10 + misc.random(10);
+			combatLevel = config_adv.disable_dieselmachine_changes ? 10 + misc.random(10) : 10;
 			break;
 
 		case 2:		// skilled units
