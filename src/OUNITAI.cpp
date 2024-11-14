@@ -72,20 +72,8 @@ void Unit::process_ai()
 
 	//--- if it's a spy from other nation, don't control it ---//
 
-	if( spy_recno && true_nation_recno() != nation_recno )
-	{
-		//--- a random chance of the AI catching the spy and resign it ---//
-
-		if( is_visible() && misc.random(365 * FRAMES_PER_DAY)==0 )		// if the unit stay outside for one year, it will get caught
-		{
-			stop2();
-			resign(COMMAND_AI);
-			return;
-		}
-
-		if( !spy_array[spy_recno]->notify_cloaked_nation_flag )		// if notify_cloaked_nation_flag is 1, the nation will take it as its own spies
-			return;
-	}
+	if( spy_recno && true_nation_recno() != nation_recno && !spy_array[spy_recno]->notify_cloaked_nation_flag && info.game_date%60 != sprite_recno%60 )
+		return;
 
 	//----- think about rewarding this unit -----//
 
@@ -209,15 +197,7 @@ void Unit::process_ai()
 			{
 				ai_no_suitable_action = 1; 	// set this flag so think_normal_human_action() won't be called continously
 
-				if( !leader_unit_recno )		// only when the unit is not led by a commander
-				{
-					//DieselMachine TODO check with anti-spy and send to a camp
-					//resign(COMMAND_AI);
-				}
-				else
-				{
-					ai_move_to_nearby_town();
-				}
+				ai_move_to_nearby_town();
 			}
 		}
 	}
@@ -412,7 +392,7 @@ int Unit::ai_escape_fire()
 
 void Unit::think_spy_action()
 {
-	ai_move_to_nearby_town();		// just move it to one of our towns
+	//ai_move_to_nearby_town();		// just move it to one of our towns
 }
 //---------- End of function Unit::think_spy_action --------//
 
@@ -1251,7 +1231,9 @@ int Unit::think_general_flee()
 				move_to( bestCamp->loc_x1, bestCamp->loc_y1 );
 			}
 			else
+			{
 				assign( bestCamp->loc_x1, bestCamp->loc_y1 );
+			}
 		}
 		else	// if the general is neither under attack or has a home camp, then call the standard think_leader_action()
 		{
@@ -1386,7 +1368,7 @@ int Unit::ai_handle_seek_path_fail()
 
 	if( resignFlag && is_visible() )
 	{
-		resign(COMMAND_AI);
+		//resign(COMMAND_AI);
 		return 1;
 	}
 	else
