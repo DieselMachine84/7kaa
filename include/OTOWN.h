@@ -340,9 +340,7 @@ public:
 
 	int 	think_counter_spy();
 	int 	needed_anti_spy_level();
-
 	int 	think_spying_town();
-	int 	think_spying_town_assign_to(int raceId);
 
 	int	should_ai_migrate();
 	int   detect_enemy(int);

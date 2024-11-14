@@ -1715,35 +1715,37 @@ int Town::think_counter_spy()
 
 	Nation* ownNation = nation_array[nation_recno];
 
-	if( ownNation->total_spy_count > ownNation->total_population * (5+ownNation->pref_counter_spy/10) / 100 )		// 5% to 15%
-		return 0;
-
-	if( !ownNation->ai_should_spend(ownNation->pref_counter_spy/2) )		// 0 to 50
-		return 0;
-
-	//--- the expense of spies should not be too large ---//
-
-	if( ownNation->expense_365days(EXPENSE_SPY) > ownNation->expense_365days() * (50+ownNation->pref_counter_spy) / 400 )
+	if (!ownNation->ai_should_create_new_spy(1))	//1 means take into account only counter-spies
 		return 0;
 
 	//------- check if we need additional spies ------//
 
-	int spyCount;
+	int spyCount = 0;
 	int curSpyLevel = spy_array.total_spy_skill_level( SPY_TOWN, town_recno, nation_recno, spyCount );
-
-	if( spyCount >= 1+ownNation->pref_counter_spy/40 )		// 1 to 3 spies at MAX in each town
-		return 0;
-
-	//---- if the spy skill needed is more than the current skill level ----//
-
 	int neededSpyLevel = needed_anti_spy_level();
 
 	if( neededSpyLevel > curSpyLevel+30 )
 	{
-		return ownNation->ai_assign_spy_to_town(town_recno);
+		int majorityRace = majority_race();
+		if (can_recruit(majorityRace))
+		{
+			int unitRecno = recruit(SKILL_SPYING, majorityRace, COMMAND_AI);
+
+			if (!unitRecno)
+				return 0;
+
+			int actionRecno = ownNation->add_action(loc_x1, loc_y1, -1, -1, ACTION_AI_ASSIGN_SPY, nation_recno, 1, unitRecno);
+
+			if (!actionRecno)
+				return 0;
+
+			train_unit_action_id = ownNation->get_action(actionRecno)->action_id;
+
+			return 1;
+		}
 	}
-	else
-		return 0;
+
+	return 0;
 }
 //-------- End of function Town::think_counter_spy --------//
 
@@ -1754,97 +1756,72 @@ int Town::think_counter_spy()
 //
 int Town::needed_anti_spy_level()
 {
-	return ( linked_firm_count*10 +
-				100 * population / MAX_TOWN_POPULATION )
-			 * nation_array[nation_recno]->pref_counter_spy / 100;
+	return (linked_firm_count * 10 + 100 * population / MAX_TOWN_POPULATION)
+			 * (100 + nation_array[nation_recno]->pref_counter_spy) / 100;
 }
 //-------- End of function Town::needed_anti_spy_level --------//
 
 
 //-------- Begin of function Town::think_spying_town --------//
 //
-// Think about planting spies into independent towns and enemy towns.
+// Think about sending spy from this town to a new mission
 //
 int Town::think_spying_town()
 {
-	int majorityRace = majority_race();
-
-	//---- don't recruit spy if we are low in cash or losing money ----//
+	//---- don't send spies somewhere if we are low in cash or losing money ----//
 
 	Nation* ownNation = nation_array[nation_recno];
 
 	if( ownNation->total_population < 30-ownNation->pref_spy/10 )		// don't use spies if the population is too low, we need to use have people to grow population
 		return 0;
 
-	if( ownNation->total_spy_count > ownNation->total_population * (10+ownNation->pref_spy/10) / 100 )		// 10% to 20%
+	if (!ownNation->ai_should_create_new_spy(0))	//0 means take into account all spies
 		return 0;
 
-	if( !ownNation->ai_should_spend(ownNation->pref_spy/2) )		// 0 to 50
-		return 0;
+	int spyCount;
+	int curSpyLevel = spy_array.total_spy_skill_level( SPY_TOWN, town_recno, nation_recno, spyCount );
+	int neededSpyLevel = needed_anti_spy_level();
 
-	//--- pick minority units first (also for increasing town harmony) ---//
-
-	for( int raceId=1 ; raceId<=MAX_RACE ; raceId++ )
+	if (curSpyLevel > neededSpyLevel + 30)
 	{
-		if( race_pop_array[raceId-1]==0 || raceId==majorityRace )
-			continue;
-
-		if( !can_recruit(raceId) )
-			continue;
-
-		if( think_spying_town_assign_to(raceId) )
-			return 1;
-	}
-
-	//---- then think about assign spies of majority race ----//
-
-	if( ownNation->pref_spy > 50 )		// only if pref_spy is > 50, it will consider using spies of majority race
-	{
-		if( can_recruit(majorityRace) )
+		for (int i = spy_array.size(); i > 0; i--)
 		{
-			if( think_spying_town_assign_to(majorityRace) )
-				return 1;
+			if (spy_array.is_deleted(i))
+				continue;
+
+			Spy* spyPtr = spy_array[i];
+			if (spyPtr->true_nation_recno != nation_recno)
+				continue;
+
+			if (spyPtr->spy_place != SPY_TOWN)
+				continue;
+
+			if (spyPtr->spy_place_para != town_recno)
+				continue;
+
+			if (spyPtr->spy_skill > 50)
+			{
+				int loc_x1 = 0;
+				int loc_y1 = 0;
+				int cloakedNationRecno = 0;
+
+				int hasNewMission = ownNation->think_spy_new_mission(spyPtr->race_id, region_id, loc_x1, loc_y1, cloakedNationRecno);
+				if (hasNewMission)
+				{
+					int unitRecno = spyPtr->mobilize_town_spy();
+					if (unitRecno)
+					{
+						ownNation->ai_start_spy_new_mission(unitRecno, loc_x1, loc_y1, cloakedNationRecno);
+						return 1;
+					}
+				}
+			}
 		}
 	}
 
 	return 0;
 }
 //-------- End of function Town::think_spying_town --------//
-
-
-//-------- Begin of function Town::think_spying_town_assign_to --------//
-//
-// Think about planting spies into independent towns and enemy towns.
-//
-int Town::think_spying_town_assign_to(int raceId)
-{
-	Nation* ownNation = nation_array[nation_recno];
-
-	int targetTownRecno = ownNation->think_assign_spy_target_town(race_id, region_id);
-
-	if( !targetTownRecno )
-		return 0;
-
-	//------- assign the spy now -------//
-
-	int unitRecno = recruit(SKILL_SPYING, raceId, COMMAND_AI);
-
-	if( !unitRecno )
-		return 0;
-
-	Town* targetTown = town_array[targetTownRecno];
-
-	int actionRecno = ownNation->add_action( targetTown->loc_x1, targetTown->loc_y1,
-							-1, -1, ACTION_AI_ASSIGN_SPY, targetTown->nation_recno, 1, unitRecno );
-
-	if( !actionRecno )
-		return 0;
-
-	train_unit_action_id = ownNation->get_action(actionRecno)->action_id;
-
-	return 1;
-}
-//-------- End of function Town::think_spying_town_assign_to --------//
 
 
 //-------- Begin of function Town::update_base_town_status --------//
