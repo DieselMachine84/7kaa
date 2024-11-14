@@ -1847,7 +1847,7 @@ int Town::recruit(int trainSkillId, int raceId, char remoteAction)
 		}
 		else
 		{
-			if( trainSkillId == SKILL_LEADING )		// also increase the combat level for leadership skill training
+			if( trainSkillId == SKILL_LEADING && config_adv.disable_dieselmachine_changes )		// also increase the combat level for leadership skill training
 				unitPtr->set_combat_level(TRAIN_SKILL_LEVEL);
 		
 			unitPtr->skill.skill_id    = trainSkillId;
