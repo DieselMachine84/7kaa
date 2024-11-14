@@ -66,6 +66,9 @@ void Nation::think_reduce_expense()
 
 	if( bestFirm )
 		bestFirm->ai_del_firm();
+
+	//-------- drop spy identity ---------//
+	think_drop_spy_identity();
 }
 //---------- End of function Nation::think_reduce_expense --------//
 
