@@ -380,17 +380,17 @@ int Nation::consider_cease_war(int withNationRecno)
 	if( info.game_date < nationRelation->last_change_status_date + 60 + (100-pref_peacefulness) )		// more peaceful nation may cease fire sooner (but the minimum is 60 days).
 		return -1;
 
-	//------ if we're run short of money for war -----//
-
 	Nation* withNation = nation_array[withNationRecno];
-
-	if( !ai_should_spend_war(withNation->military_rank_rating(), 1) )		// if we shouldn't spend any more on war, then return 1
-		return 1;
 
 	//------ if this is our biggest enemy do not cease fire -----//
 
 	if (config.ai_aggressiveness == OPTION_VERY_HIGH && nation_array.max_overall_nation_recno == withNationRecno)
 		return -1;
+
+	//------ if we're run short of money for war -----//
+
+	if( !ai_should_spend_war(withNation->military_rank_rating(), 1) )		// if we shouldn't spend any more on war, then return 1
+		return 1;
 
 	//------------------------------------------------//
 
