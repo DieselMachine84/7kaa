@@ -47,6 +47,7 @@
 #include <OSERES.h>
 #include <OSE.h>
 #include "gettext.h"
+#include <ConfigAdv.h>
 
 
 //----------- Define static vars -------------//
@@ -225,6 +226,8 @@ void FirmCamp::assign_overseer(int overseerRecno)
 
 		unitPtr->team_info->member_count = 0;
 		unitPtr->home_camp_firm_recno 	= 0;
+		if (!config_adv.disable_dieselmachine_changes)
+			unitPtr->nation_contribution = 0;
 	}
 
 	//----- assign the overseer now -------//
