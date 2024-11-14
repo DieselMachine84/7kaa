@@ -31,6 +31,7 @@
 #include <ONATION.h>
 #include <OSITE.h>
 #include <OPOWER.h>
+#include <ConfigAdv.h>
 
 //-------------- Define constant -----------//
 
@@ -383,7 +384,7 @@ int SiteArray::create_raw_site(int regionId, int townRecno)
 		 5, 5, maxTries, regionId, 1) )     	// 5,5 are the size of the raw site, it must be large enough for a mine to build and 1 location for the edges. The last para 1 = site building mode
 	{
 		int maxRawReserve = MAX_RAW_RESERVE_QTY;
-		if (info.year_passed > 5)
+		if (!config_adv.disable_dieselmachine_changes && info.year_passed > 5)
 		{
 			maxRawReserve = maxRawReserve * 2;
 		}
