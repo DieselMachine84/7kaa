@@ -40,6 +40,7 @@
 #include <OSE.h>
 // ###### end Gilbert 10/10 #######//
 #include "gettext.h"
+#include <ConfigAdv.h>
 
 
 //--------- Begin of function Spy::Spy ----------//
@@ -243,7 +244,7 @@ void Spy::next_day()
 
 	//------ process actions ---------//
 
-	if( info.game_date%30 == spy_recno%30 )
+	if( info.game_date%15 == spy_recno%15 )
 	{
 		if( spy_place == SPY_TOWN )
 			process_town_action();
@@ -380,7 +381,7 @@ void Spy::process_town_action()
 	{
 		if( townPtr->race_pop_array[race_id-1] > townPtr->race_spy_count_array[race_id-1] )	// only when there are non-spy people
 		{
-			float decValue = (float)spy_skill / 5 / townPtr->race_pop_array[race_id-1];		// the more people there, the longer it takes to decrease the loyalty
+			float decValue = (float)spy_skill / 10.0 / (float)townPtr->race_pop_array[race_id-1];		// the more people there, the longer it takes to decrease the loyalty
 
 			//----- if this is an independent town -----//
 
@@ -396,7 +397,10 @@ void Spy::process_town_action()
 
 			else
 			{
-				townPtr->race_loyalty_array[race_id-1] -= decValue;
+				if (config_adv.disable_dieselmachine_changes)
+					townPtr->race_loyalty_array[race_id-1] -= decValue;
+				else
+					townPtr->race_loyalty_array[race_id-1] -= decValue * 4.0;
 
 				if( townPtr->race_loyalty_array[race_id-1] < (float) 0 )
 					townPtr->race_loyalty_array[race_id-1] = (float) 0;
@@ -425,8 +429,13 @@ void Spy::process_firm_action()
 
 			if( unitPtr->race_id == race_id )
 			{
-				if( misc.random(10 - spy_skill/10 + unitPtr->skill.skill_level/10)==0  // a commander with a higher leadership skill will be less influenced by the spy's dissents
-					 && unitPtr->loyalty>0 )
+				// a commander with a higher leadership skill will be less influenced by the spy's dissents
+				int decLoyaltyChance = 0;
+				if (config_adv.disable_dieselmachine_changes)
+					decLoyaltyChance = (misc.random(10 - spy_skill/10 + unitPtr->skill.skill_level/10) == 0);
+				else
+					decLoyaltyChance = (misc.random(10 - spy_skill/10 + 1 + unitPtr->skill.skill_level/20) == 0);
+				if( decLoyaltyChance && unitPtr->loyalty > 0 )
 				{
 					unitPtr->change_loyalty( -1 );
 				}
@@ -451,14 +460,23 @@ void Spy::process_firm_action()
 
 				if( townPtr->race_pop_array[raceId-1] > townPtr->race_spy_count_array[raceId-1] )	// only when there are non-spy people
 				{
-					townPtr->change_loyalty( raceId, (float) -spy_skill / 5 / townPtr->race_pop_array[raceId-1] );		// the more people there, the longer it takes to decrease the loyalty
+					// the more people there, the longer it takes to decrease the loyalty
+					if (config_adv.disable_dieselmachine_changes)
+						townPtr->change_loyalty( raceId,  -1.0 * (float)spy_skill / 10.0 / (float)townPtr->race_pop_array[raceId-1] );
+					else
+						townPtr->change_loyalty( raceId,  -4.0 * (float)spy_skill / 10.0 / (float)townPtr->race_pop_array[raceId-1] );
 				}
 			}
 			else //---- if the worker does not live in a town ----//
 			{
 				if( !workerPtr->spy_recno )		// the loyalty of the spy himself does not change
 				{
-					if( misc.random(10-spy_skill/10)==0 && workerPtr->worker_loyalty>0 )
+					int decLoyaltyChance = 0;
+					if (config_adv.disable_dieselmachine_changes)
+						decLoyaltyChance = (misc.random(10-spy_skill/10) == 0);
+					else
+						decLoyaltyChance = (misc.random(10 - spy_skill/10 + 1) == 0);
+					if( decLoyaltyChance && workerPtr->worker_loyalty>0 )
 						workerPtr->worker_loyalty--;
 				}
 			}
