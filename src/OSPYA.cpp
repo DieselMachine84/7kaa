@@ -37,6 +37,7 @@
 #include <OSPY.h>
 #include <vga_util.h>
 #include "gettext.h"
+#include <ConfigAdv.h>
 
 //----- Define constants for viewing secret menu ------//
 
@@ -283,7 +284,7 @@ void SpyArray::process_sabotage()
 
 			firmPtr = firm_array[spyPtr->spy_place_para];
 
-			firmPtr->sabotage_level += spyPtr->spy_skill/5;
+			firmPtr->sabotage_level += config_adv.disable_dieselmachine_changes ? spyPtr->spy_skill/5 : spyPtr->spy_skill/2;
 
 			if( firmPtr->sabotage_level > 100 )
 				firmPtr->sabotage_level = 100;
