@@ -2317,8 +2317,19 @@ int Unit::can_spy_change_nation()
          if( unit_array.is_deleted(unitRecno) )    // the unit is dying, its recno is still in the location
             continue;
 
-         if( unit_array[unitRecno]->true_nation_recno() != trueNationRecno )
+         Unit* otherUnit = unit_array[unitRecno];
+         if( otherUnit->true_nation_recno() != trueNationRecno )
+         {
+            if (!config_adv.disable_dieselmachine_changes && otherUnit->spy_recno && spy_recno)
+            {
+                if (spy_array[otherUnit->spy_recno]->spy_skill >= spy_array[spy_recno]->spy_skill)
+                {
+                    continue;
+                }
+            }
+
             return 0;
+         }
       }
    }
 
