@@ -101,13 +101,13 @@ int Nation::consider_talk_msg(TalkMsg* talkMsg)
 	switch( talkMsg->talk_id )
 	{
 		case TALK_PROPOSE_TRADE_TREATY:
-			return consider_trade_treaty(talkMsg->from_nation_recno) >= 0;		// the returned value is the curRating - acceptRating, if >=0, means it accepts
+			return consider_trade_treaty(talkMsg->from_nation_recno) > 0;		// the returned value is the curRating - acceptRating, if >=0, means it accepts
 
 		case TALK_PROPOSE_FRIENDLY_TREATY:
-			return consider_friendly_treaty(talkMsg->from_nation_recno) >= 0;
+			return consider_friendly_treaty(talkMsg->from_nation_recno) > 0;
 
 		case TALK_PROPOSE_ALLIANCE_TREATY:
-			return consider_alliance_treaty(talkMsg->from_nation_recno) >= 0;
+			return consider_alliance_treaty(talkMsg->from_nation_recno) > 0;
 
 		case TALK_REQUEST_MILITARY_AID:
 			return consider_military_aid(talkMsg);
@@ -116,7 +116,7 @@ int Nation::consider_talk_msg(TalkMsg* talkMsg)
 			return consider_trade_embargo(talkMsg);
 
 		case TALK_REQUEST_CEASE_WAR:
-			return consider_cease_war(talkMsg->from_nation_recno) >= 0;
+			return consider_cease_war(talkMsg->from_nation_recno) > 0;
 
 		case TALK_REQUEST_DECLARE_WAR:
 			return consider_declare_war(talkMsg);
@@ -243,7 +243,7 @@ int Nation::consider_trade_treaty(int withNationRecno)
 	//---- don't accept new trade treaty soon when the trade treaty was terminated not too long ago ----//
 
 	if( info.game_date < nationRelation->last_talk_reject_date_array[TALK_END_TRADE_TREATY-1] + 365 - pref_forgiveness )
-		return 0;
+		return -1;
 
 	//-- if we look forward to have a trade treaty with this nation ourselves --//
 
@@ -390,7 +390,7 @@ int Nation::consider_cease_war(int withNationRecno)
 	//------ if this is our biggest enemy do not cease fire -----//
 
 	if (config.ai_aggressiveness == OPTION_VERY_HIGH && withNation->overall_rank_rating() == 100)
-		return 0;
+		return -1;
 
 	//------------------------------------------------//
 
