@@ -546,16 +546,13 @@ public:
 	//--------------------------------------------------------------//
 
 	void 			think_spy();
-
-	int 			ai_assign_spy(int targetXLoc, int targetYLoc, int spyRaceId, int mobileOnly);
-	int 			ai_assign_spy_to_town(int townRecno, int raceId=0);
-	int 			ai_assign_spy_to_firm(int firmRecno);
-
-	Spy* 			ai_find_spy(int targetXLoc, int targetYLoc, int targetRaceId, int mobileOnly);
-
-	int 			think_assign_spy_target_camp(int raceId, int regionId);
+	int 			think_assign_spy_target_camp(int raceId, int regionId, int loc_x1, int loc_y1, int cloakedNationRecno);
 	int 			think_assign_spy_target_town(int raceId, int regionId);
 	int 			think_assign_spy_own_town(int raceId, int regionId);
+	int 			think_spy_new_mission(int raceId, int regionId, int& loc_x1, int& loc_y1, int& cloakedNationRecno);
+	void 			think_drop_spy_identity();
+	void 			ai_start_spy_new_mission(int unitRecno, int loc_x1, int loc_y1, int cloakedNationRecno);
+	int 			ai_should_create_new_spy(int onlyCounterSpy);
 
 	//--------------------------------------------------------------//
 	// strategic grand planning functions
