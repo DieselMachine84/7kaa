@@ -44,6 +44,9 @@ public:
 	uint32_t		checksum;
 	uint32_t		flags;
 
+	// game settings
+	char			disable_dieselmachine_changes;
+
 	// firm settings
 	char			firm_mobilize_civilian_aggressive;
 	char			firm_migrate_stricter_rules;
