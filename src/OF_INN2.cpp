@@ -102,15 +102,7 @@ int FirmInn::think_hire_spy()
 {
 	Nation* ownNation = nation_array[nation_recno];
 
-	if( ownNation->total_spy_count > ownNation->total_population * (10+ownNation->pref_spy/10) / 100 )		// 10% to 20%
-		return 0;
-
-	if( !ownNation->ai_should_spend(ownNation->pref_spy/2) )
-		return 0;
-
-	//--- the expense of spies should not be too large ---//
-
-	if( ownNation->expense_365days(EXPENSE_SPY) > ownNation->expense_365days() * (50+ownNation->pref_spy) / 400 )
+	if (!ownNation->ai_should_create_new_spy(0))	//0 means take into account all spies
 		return 0;
 
 	//--------------------------------------------//
@@ -123,9 +115,20 @@ int FirmInn::think_hire_spy()
 			continue;
 
 		int raceId = unit_res[innUnit->unit_id]->race_id;
+		int loc_x1 = 0;
+		int loc_y1 = 0;
+		int cloakedNationRecno = 0;
+		int hasNewMission = ownNation->think_spy_new_mission(raceId, region_id, loc_x1, loc_y1, cloakedNationRecno);
 
-		if( think_assign_spy_to(raceId, i+1) )
-			return 1;
+		if (hasNewMission)
+		{
+			int unitRecno = hire(i + 1);
+			if (unitRecno)
+			{
+				ownNation->ai_start_spy_new_mission(unitRecno, loc_x1, loc_y1, cloakedNationRecno);
+				return 1;
+			}
+		}
 	}
 
 	return 0;
@@ -139,44 +142,6 @@ int FirmInn::think_hire_spy()
 //
 int FirmInn::think_assign_spy_to(int raceId, int innUnitRecno)
 {
-	Town *townPtr;
-
-	for( int i=town_array.size() ; i>0 ; i-- )
-	{
-		if( town_array.is_deleted(i) )
-			continue;
-
-		townPtr = town_array[i];
-
-		if( townPtr->majority_race() != raceId )
-			continue;
-
-		if( townPtr->region_id != region_id )
-			continue;
-
-		//---- think about assign spies to independent town to lower resistance ---//
-
-		if( townPtr->nation_recno == 0 )
-		{
-			for( int j=0 ; j<MAX_RACE ; j++ )
-			{
-				//--- current resistance == target resistance if we don't have any spies in the town ---//
-
-				//DieselMachine TODO bug here
-				if( townPtr->race_target_resistance_array[j][nation_recno-1] ==
-					 townPtr->race_resistance_array[j][nation_recno-1] )
-				{
-					int unitRecno = hire(innUnitRecno);
-
-					nation_array[nation_recno]->add_action( townPtr->loc_x1, townPtr->loc_y1,
-								  -1, -1, ACTION_AI_ASSIGN_SPY, townPtr->nation_recno, 1, unitRecno );
-
-					return 1;
-				}
-			}
-		}
-	}
-
 	return 0;
 }
 //-------- End of function FirmInn::think_assign_spy_to --------//
