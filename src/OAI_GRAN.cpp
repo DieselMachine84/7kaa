@@ -279,7 +279,7 @@ void Nation::think_deal_with_one_enemy(int enemyNationRecno)
 
 				if( !nationRelation->trade_treaty )
 				{
-					if( should_diplomacy_retry(TALK_PROPOSE_TRADE_TREATY, i) )
+					if( should_diplomacy_retry(TALK_PROPOSE_TRADE_TREATY, i) && consider_trade_treaty(i) > 0 )
 						talk_res.ai_send_talk_msg(i, nation_recno, TALK_PROPOSE_TRADE_TREATY );
 				}
 				else //--- if we already have a trade treaty with this nation ---//
@@ -288,7 +288,7 @@ void Nation::think_deal_with_one_enemy(int enemyNationRecno)
 
 					if( nationRelation->status == NATION_FRIENDLY )
 					{
-						if( should_diplomacy_retry(TALK_PROPOSE_ALLIANCE_TREATY, i) )
+						if( should_diplomacy_retry(TALK_PROPOSE_ALLIANCE_TREATY, i) && consider_alliance_treaty(i) > 0 )
 							talk_res.ai_send_talk_msg(i, nation_recno, TALK_PROPOSE_ALLIANCE_TREATY );
 					}
 
@@ -297,7 +297,7 @@ void Nation::think_deal_with_one_enemy(int enemyNationRecno)
 					else if( nationPtr->trade_rating(nation_recno) > 10 ||
 								nationPtr->ai_trade_with_rating(nation_recno) >= 50 )		// or if the product complement each other very well
 					{
-						if( should_diplomacy_retry(TALK_PROPOSE_FRIENDLY_TREATY, i) )
+						if( should_diplomacy_retry(TALK_PROPOSE_FRIENDLY_TREATY, i) && consider_friendly_treaty(i) > 0 )
 							talk_res.ai_send_talk_msg(i, nation_recno, TALK_PROPOSE_FRIENDLY_TREATY );
 					}
 				}
