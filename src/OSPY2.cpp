@@ -59,6 +59,8 @@ void Spy::process_ai()
 //
 void Spy::think_town_spy()
 {
+	Nation* trueNation = nation_array[true_nation_recno];
+
 	Town* townPtr = town_array[spy_place_para];
 
 	if( townPtr->nation_recno == true_nation_recno )		// anti-spy
@@ -68,13 +70,17 @@ void Spy::think_town_spy()
 
 	if( townPtr->nation_recno == 0 )
 	{
-		set_action_mode(SPY_SOW_DISSENT);
+		if (trueNation->reputation > 0)
+			set_action_mode(SPY_SOW_DISSENT);
 
 		//--- if the resistance has already drop low enough, the spy no longer needs to be in the town ---//
 
 		if( townPtr->race_loyalty_array[race_id-1] < MIN_INDEPENDENT_DEFEND_LOYALTY  )
 		{
-			mobilize_town_spy();
+			if ((townPtr->population < MAX_TOWN_POPULATION - 5) && misc.random(6) == 0)
+			{
+				mobilize_town_spy();
+			}
 		}
 	}
 	else
@@ -88,18 +94,21 @@ void Spy::think_town_spy()
 		//
 		//--------------------------------------------------//
 
-		Nation* trueNation = nation_array[true_nation_recno];
-
 		if( townPtr->average_loyalty() < 50 - trueNation->pref_loyalty_concern/10 )		// pref_loyalty_concern actually does apply to here, we just use a preference var so that the decision making process will vary between nations
 		{
 			set_action_mode(SPY_SOW_DISSENT);
 		}
 		else
 		{
-			if( misc.random(5)==0 )			// 20% chance of sowing dissents.
+			if( trueNation->reputation > 0 && misc.random(1) == 0 )			// 50% chance of sowing dissents.
 				set_action_mode(SPY_SOW_DISSENT);
 			else
 				set_action_mode(SPY_IDLE);
+		}
+
+		if ((townPtr->population < MAX_TOWN_POPULATION - 5) && misc.random(6) == 0)
+		{
+			mobilize_town_spy();
 		}
 	}
 }
@@ -142,7 +151,7 @@ void Spy::think_firm_spy()
 
 	//------ think about changing spy mode ----//
 
-	else if( misc.random(3)==0 )           // 1/10 chance to set it to idle to prevent from being caught
+	else if( trueNation->reputation < 0 || misc.random(3)==0 )           // 1/10 chance to set it to idle to prevent from being caught
 	{
 		set_action_mode(SPY_IDLE);
 	}
@@ -239,7 +248,7 @@ int Spy::think_bribe()
 	{
 		err_when( firm_array[newSpy->spy_place_para]->nation_recno != true_nation_recno );
 
-		newSpy->drop_spy_identity();		// drop the spy identity of the newly bribed spy if the capture is successful, this will save the spying costs
+		//newSpy->drop_spy_identity();		// drop the spy identity of the newly bribed spy if the capture is successful, this will save the spying costs
 	}
 
 	return 1;
@@ -303,8 +312,8 @@ int Spy::think_mobile_spy()
 
 	//---- if the spy has stopped and there is no new action ----//
 
-	if( unitPtr->is_ai_all_stop() &&
-		 (!notify_cloaked_nation_flag || cloaked_nation_recno==0) )
+	if( unitPtr->is_ai_all_stop()/* &&
+		 (!notify_cloaked_nation_flag || cloaked_nation_recno==0)*/ )
 	{
 		return think_mobile_spy_new_action();
 	}
@@ -318,78 +327,25 @@ int Spy::think_mobile_spy()
 //
 int Spy::think_mobile_spy_new_action()
 {
-	Nation* trueNation = nation_array[true_nation_recno];
-
 	err_when( spy_place != SPY_MOBILE );
 
-	int spyRegionId = unit_array[spy_place_para]->region_id();
+	Nation* trueNation = nation_array[true_nation_recno];
+	Unit* spyUnit = unit_array[spy_place_para];
+	int loc_x1 = spyUnit->next_x_loc();
+	int loc_y1 = spyUnit->next_y_loc();
+	int cloakedNationRecno = cloaked_nation_recno;
+	int spyRegionId = spyUnit->region_id();
 
-	//----- try to sneak into an enemy camp ------//
+	int hasNewMission = trueNation->think_spy_new_mission(race_id, spyRegionId, loc_x1, loc_y1, cloakedNationRecno);
 
-	int firmRecno = trueNation->think_assign_spy_target_camp(race_id, spyRegionId);
-
-	if( firmRecno )
+	if (hasNewMission)
 	{
-		Firm* firmPtr = firm_array[firmRecno];
-
-		return add_assign_spy_action( firmPtr->loc_x1, firmPtr->loc_y1, firmPtr->nation_recno );
+		return add_assign_spy_action(loc_x1, loc_y1, cloakedNationRecno);
 	}
-
-	//--- try to sneak into an enemy town or an independent town ---//
-
-	int townRecno = trueNation->think_assign_spy_target_town(race_id, spyRegionId);
-
-	if( townRecno )
+	else
 	{
-		Town* townPtr = town_array[townRecno];
-
-		return add_assign_spy_action( townPtr->loc_x1, townPtr->loc_y1, townPtr->nation_recno );
+		return 0;
 	}
-
-	//------ think if we should drop the spy identity -------//
-
-	int dropIdentity = 0;
-
-	//-------- if we already have too many spies --------//
-
-	if( trueNation->total_spy_count > trueNation->total_population * (10+trueNation->pref_spy/5) / 100 )		// 10% to 30%
-	{
-		dropIdentity = 1;
-	}
-
-	//--- the expense of spies should not be too large ---//
-
-	else if( trueNation->expense_365days(EXPENSE_SPY) >
-		 trueNation->expense_365days() * (50+trueNation->pref_counter_spy) / 400 )
-	{
-		dropIdentity = 1;
-	}
-
-	else //------- try to assign to one of our own towns -------//
-	{
-		int townRecno = trueNation->think_assign_spy_own_town(race_id, spyRegionId);
-
-		if( townRecno )
-		{
-			Town* townPtr = town_array[townRecno];
-
-			return add_assign_spy_action( townPtr->loc_x1, townPtr->loc_y1, townPtr->nation_recno );
-		}
-		else
-		{
-			dropIdentity = 1;
-		}
-	}
-
-	//---------- drop spy identity now --------//
-
-	if( dropIdentity )
-	{
-		drop_spy_identity();
-		return 1;
-	}
-
-	return 0;
 }
 //---------- End of function Spy::think_mobile_spy_new_action --------//
 
