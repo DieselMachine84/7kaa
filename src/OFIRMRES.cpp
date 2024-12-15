@@ -79,6 +79,16 @@ void FirmRes::init()
 
    //----------------------------------------//
 
+	for( int i=0 ; i<firm_count ; i++ )
+	{
+		FirmInfo* firmInfo = firm_info_array+i;
+		if (firmInfo->firm_id == FIRM_RESEARCH)
+		{
+			firmInfo->setup_cost = 600;
+			firmInfo->year_cost = 600;
+		}
+	}
+
 	init_flag=1;
 }
 //---------- End of function FirmRes::init -----------//
