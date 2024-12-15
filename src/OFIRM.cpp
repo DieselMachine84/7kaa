@@ -2078,7 +2078,7 @@ int Firm::pull_town_people(int townRecno, char remoteAction, int raceId, int for
 				}
 				else
 				{
-					if( misc.random( (100-(int)townPtr->race_resistance_array[raceId-1][nation_recno-1])/10 ) > 0 )
+					if( misc.random( (int)townPtr->race_resistance_array[raceId-1][nation_recno-1]/10 ) > 0 )
 						return 0;
 				}
 			}
