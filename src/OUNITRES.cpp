@@ -96,6 +96,57 @@ void UnitRes::init()
 	load_info();
 	load_attack_info();
 
+	for( int i=0 ; i<unit_info_count ; i++ )
+	{
+		UnitInfo* unitInfo = unit_info_array+i;
+
+		int is_catapult = (unitInfo->unit_id == UNIT_CATAPULT);
+		int is_cannon = (unitInfo->unit_id == UNIT_CANNON);
+		int is_unicorn = (unitInfo->unit_id == UNIT_F_BALLISTA);
+		int is_caravel = (unitInfo->unit_id == UNIT_CARAVEL);
+		int is_galleon = (unitInfo->unit_id == UNIT_GALLEON);
+
+		if (is_cannon)
+		{
+			unitInfo->build_cost = 150;
+			unitInfo->year_cost = 150;
+		}
+
+		if (is_unicorn)
+		{
+			unitInfo->build_cost = 150;
+			unitInfo->year_cost = 150;
+		}
+
+		if (is_caravel)
+		{
+			unitInfo->build_cost = 200;
+			unitInfo->year_cost = 200;
+		}
+
+		if (is_galleon)
+		{
+			unitInfo->build_cost = 300;
+			unitInfo->year_cost = 300;
+		}
+
+		AttackInfo *attackInfo = get_attack_info(unitInfo->first_attack);
+		int attackCount = unitInfo->attack_count;
+
+		for(int j=0; j<attackCount; j++, attackInfo++)
+		{
+			if (is_catapult && j == 1)
+				attackInfo->bullet_radius = 38;
+			if (is_catapult && j == 2)
+				attackInfo->bullet_radius = 46;
+
+			if (is_cannon && j == 1)
+				attackInfo->bullet_radius = 38;
+			if (is_cannon && j == 2)
+				attackInfo->bullet_radius = 46;
+		}
+	}
+
 	//---------- set vars -----------//
 
 	mobile_monster_count = 0;
