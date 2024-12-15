@@ -341,7 +341,7 @@ int FirmMarket::can_hire_caravan()
 {
 	Nation* nationPtr = nation_array[nation_recno];
 
-	if( nationPtr->cash < 0 )
+	if( nationPtr->cash < unit_res[UNIT_CARAVAN]->build_cost )
 		return 0;
 
 	int supportedCaravan = nationPtr->total_population / POPULATION_PER_CARAVAN;
@@ -382,6 +382,7 @@ short FirmMarket::hire_caravan(char remoteAction)
 
 	unitCaravan->loyalty = 100;
 	unitCaravan->set_stop( 1, loc_x1, loc_y1, COMMAND_AUTO );
+	nationPtr->add_expense( EXPENSE_CARAVAN, unit_res[UNIT_CARAVAN]->build_cost);
 
 	//---------- deduct cash for the caravan's cost ----------//
 
