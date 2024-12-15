@@ -2184,7 +2184,7 @@ void Firm::process_independent_town_worker()
 
 		townPtr = town_array[ worker_array[i].town_recno ];
 
-		if( townPtr->nation_recno==0 )		// if it's an independent town
+		if( is_operating() && townPtr->nation_recno==0 )		// if it's an independent town
 		{
 			townPtr->race_resistance_array[worker_array[i].race_id-1][nation_recno-1] -= RESISTANCE_DECREASE_PER_WORKER;
 
